@@ -53,7 +53,6 @@
         .role-staff { background-color: #007bff; } /* Blue */
         .role-user  { background-color: #6c757d; } /* Gray */
 
-        /* Banned Styling */
         .status-banned {
             background-color: #000;
             color: #ff4d4d;
@@ -74,12 +73,14 @@
             margin-right: 5px;
             transition: 0.2s;
             margin-bottom: 5px;
+            color: white;
         }
 
-        .btn-promote { background-color: #007bff; color: white; }
-        .btn-demote { background-color: #fd7e14; color: white; }
-        .btn-ban { background-color: #6f42c1; color: white; } /* Purple */
-        .btn-delete { background-color: #dc3545; color: white; }
+        .btn-promote-staff { background-color: #007bff; }
+        .btn-promote-admin { background-color: #28a745; }
+        .btn-demote { background-color: #fd7e14; }
+        .btn-ban { background-color: #6f42c1; }
+        .btn-delete { background-color: #dc3545; }
         
         button:hover { opacity: 0.8; }
 
@@ -96,7 +97,7 @@
     </div>
 
     <h2>User Management</h2>
-    <p id="welcome-msg">Loading permissions...</p>
+    <p id="welcome-msg">Verifying Authority...</p>
 
     <table>
         <thead>
@@ -118,7 +119,7 @@
             const me = await meRes.json();
             
             document.getElementById('welcome-msg').innerText = 
-                `Logged in as: ${me.username} (${me.role})`;
+                `Authorized: ${me.username} (${me.role})`;
 
             const res = await fetch('/api/users');
             const users = await res.json();
@@ -129,17 +130,17 @@
             users.forEach(user => {
                 const row = document.createElement('tr');
                 const roleClass = `role-${user.role.toLowerCase()}`;
-                const bannedTag = user.isBanned ? '<span class="status-banned">BANNED</span>' : '';
+                const bannedLabel = user.isBanned ? '<span class="status-banned">BANNED</span>' : '';
 
                 row.innerHTML = `
-                    <td>${user.username} ${bannedTag}</td>
+                    <td>${user.username} ${bannedLabel}</td>
                     <td><span class="role-badge ${roleClass}">${user.role}</span></td>
                     <td>${renderActions(user, me)}</td>
                 `;
                 tableBody.appendChild(row);
             });
         } catch (err) {
-            console.error('Error loading users:', err);
+            console.error('Error loading management console:', err);
         }
     }
 
@@ -148,36 +149,39 @@
 
         let html = '';
 
-        // 1. Promotion Logic
-        if (currentUser.role === 'Owner' && (targetUser.role === 'User' || targetUser.role === 'Staff')) {
-            html += `<button class="btn-promote" onclick="updateRole('${targetUser.username}', 'promote')">Make Admin</button>`;
-        } else if (currentUser.role === 'Admin' && targetUser.role === 'User') {
-            html += `<button class="btn-promote" onclick="updateRole('${targetUser.username}', 'promote')">Make Staff</button>`;
+        // 1. PROMOTION PIPELINE
+        if (targetUser.role === 'User') {
+            // Admins and Owners can promote Members to Staff
+            if (currentUser.role === 'Owner' || currentUser.role === 'Admin') {
+                html += `<button class="btn-promote-staff" onclick="updateRole('${targetUser.username}', 'promote')">Promote to Staff</button>`;
+            }
+        } else if (targetUser.role === 'Staff') {
+            // ONLY Owner can promote Staff to Admin
+            if (currentUser.role === 'Owner') {
+                html += `<button class="btn-promote-admin" onclick="updateRole('${targetUser.username}', 'promote')">Promote to Admin</button>`;
+            }
         }
 
-        // 2. Demotion Logic (Owner Only)
-        if (currentUser.role === 'Owner' && (targetUser.role === 'Admin' || targetUser.role === 'Staff')) {
-            html += `<button class="btn-demote" onclick="updateRole('${targetUser.username}', 'demote')">Demote to User</button>`;
+        // 2. DEMOTION PIPELINE (Owner Only)
+        if (currentUser.role === 'Owner') {
+            if (targetUser.role === 'Admin') {
+                html += `<button class="btn-demote" onclick="updateRole('${targetUser.username}', 'demote')">Demote to Staff</button>`;
+            } else if (targetUser.role === 'Staff') {
+                html += `<button class="btn-demote" onclick="updateRole('${targetUser.username}', 'demote')">Demote to Member</button>`;
+            }
         }
 
-        // 3. Ban Logic
-        const canBan = currentUser.role === 'Owner' || 
-                      (currentUser.role === 'Admin' && (targetUser.role === 'User' || targetUser.role === 'Staff'));
+        // 3. MODERATION (Ban/Delete)
+        const canModerate = currentUser.role === 'Owner' || 
+                           (currentUser.role === 'Admin' && (targetUser.role === 'User' || targetUser.role === 'Staff'));
 
-        if (canBan) {
-            const banText = targetUser.isBanned ? 'Unban User' : 'Ban User';
-            html += `<button class="btn-ban" onclick="toggleBan('${targetUser.username}')">${banText}</button>`;
-        }
-
-        // 4. Delete Logic
-        const canDelete = currentUser.role === 'Owner' || 
-                         (currentUser.role === 'Admin' && (targetUser.role === 'User' || targetUser.role === 'Staff'));
-
-        if (canDelete) {
+        if (canModerate) {
+            const banActionText = targetUser.isBanned ? 'Unban' : 'Ban';
+            html += `<button class="btn-ban" onclick="toggleBan('${targetUser.username}')">${banActionText}</button>`;
             html += `<button class="btn-delete" onclick="deleteUser('${targetUser.username}')">Delete</button>`;
         }
 
-        return html || 'No Actions Available';
+        return html || '<em>No Actions Permitted</em>';
     }
 
     async function updateRole(username, action) {
@@ -185,21 +189,21 @@
         const endpoint = action === 'promote' ? `/api/promote-user/${username}` : `/api/demote-user/${username}`;
         const res = await fetch(endpoint, { method: 'POST' });
         if (res.ok) loadUsers();
-        else alert('Error updating role');
+        else alert('Action denied by server.');
     }
 
     async function toggleBan(username) {
-        if (!confirm(`Toggle ban status for ${username}?`)) return;
+        if (!confirm(`Toggle ban for ${username}?`)) return;
         const res = await fetch(`/api/ban-user/${username}`, { method: 'POST' });
         if (res.ok) loadUsers();
-        else alert('Error toggling ban status');
+        else alert('Failed to toggle ban status.');
     }
 
     async function deleteUser(username) {
-        if (!confirm(`Delete ${username} permanently?`)) return;
+        if (!confirm(`Permanently delete ${username}?`)) return;
         const res = await fetch(`/api/delete-user/${username}`, { method: 'DELETE' });
         if (res.ok) loadUsers();
-        else alert('Error deleting user');
+        else alert('Deletion failed.');
     }
 
     loadUsers();
