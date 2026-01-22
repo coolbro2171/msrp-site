@@ -2,34 +2,63 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin - User Permissions</title>
+    <title>Admin Panel - Manage Users</title>
     <style>
-        body { font-family: sans-serif; padding: 50px; background-color: #f8d7da; }
-        .panel { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h1 { color: #721c24; }
+        body { font-family: sans-serif; padding: 40px; background-color: #f4f4f9; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #f2f2f2; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #eee; }
+        .delete-btn { background: #ff4d4d; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 4px; }
+        .delete-btn:hover { background: #ff0000; }
     </style>
 </head>
 <body>
-    <div class="panel">
+    <div class="container">
         <h1>Admin Control Panel</h1>
-        <p>Manage user permissions and website access below.</p>
-        <table>
-            <tr>
-                <th>Username</th>
-                <th>Status</th>
-                <th>Action</th>
-            </tr>
-            <tr>
-                <td>Standard_User_123</td>
-                <td>Active</td>
-                <td><button>Change Permission</button></td>
-            </tr>
+        <p>Current registered users:</p>
+        <table id="userTable">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
         </table>
         <br>
-        <a href="/">Logout</a>
+        <a href="/logout">Logout</a>
     </div>
+
+    <script>
+        // Function to load users and show them in the table
+        async function loadUsers() {
+            const response = await fetch('/api/users');
+            const users = await response.json();
+            const tableBody = document.querySelector('#userTable tbody');
+            tableBody.innerHTML = '';
+
+            users.forEach(user => {
+                if(user.username === 'Admin') return; // Don't allow deleting the Admin
+
+                const row = `<tr>
+                    <td>${user.username}</td>
+                    <td><button class="delete-btn" onclick="deleteUser('${user.username}')">Delete</button></td>
+                </tr>`;
+                tableBody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        // Function to tell the server to delete a user
+        async function deleteUser(username) {
+            if (confirm(`Are you sure you want to delete ${username}?`)) {
+                await fetch(`/api/delete-user/${username}`, { method: 'DELETE' });
+                loadUsers(); // Refresh the list
+            }
+        }
+
+        loadUsers(); // Load the list when page opens
+    </script>
 </body>
 </html>
