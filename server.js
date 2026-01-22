@@ -26,21 +26,20 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Optimized Session Setup for Refreshes
+// --- THE REFRESH FIX ---
+// This ensures the session persists correctly in your MongoDB and browser during reloads
 app.use(session({
     secret: 'secure-dev-key-789',
-    resave: true,                // Forces session update on refresh
+    resave: true,                // Forces session to save back to store on every request
     saveUninitialized: false,
     store: MongoStore.create({
         mongoUrl: MONGODB_URI,
-        collectionName: 'sessions',
-        ttl: 14 * 24 * 60 * 60   // Sessions persist for 14 days
+        collectionName: 'sessions'
     }),
     cookie: { 
         maxAge: 3600000,         // 1 hour
-        secure: false,           // Set to true only if site uses HTTPS (SSL)
-        httpOnly: true,
-        sameSite: 'lax'          // Essential for keeping session across refreshes
+        sameSite: 'lax',         // Allows the cookie to be sent on top-level navigations/refreshes
+        secure: false            // Set to true only if your site uses HTTPS
     }
 }));
 
@@ -58,12 +57,11 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
-// Admin Route with Database Re-verification
+// Admin Route with Refresh Fix
 app.get('/admin', protect, async (req, res) => {
     try {
-        // Double-check the role directly from the database on page load/refresh
+        // Re-verify the role from the database to handle session lag on refresh
         const user = await User.findOne({ username: req.session.username });
-        
         if (user && user.role === 'Admin') {
             res.sendFile(path.join(__dirname, 'admin.html'));
         } else {
@@ -75,6 +73,7 @@ app.get('/admin', protect, async (req, res) => {
 });
 
 // --- API ROUTES ---
+
 app.get('/api/me', protect, (req, res) => {
     res.json({ username: req.session.username, role: req.session.role });
 });
@@ -110,6 +109,7 @@ app.delete('/api/delete-user/:username', protect, async (req, res) => {
 });
 
 // --- AUTHENTICATION ---
+
 app.post('/register', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -117,6 +117,8 @@ app.post('/register', async (req, res) => {
         if (existingUser) return res.send('User already exists. <a href="/register">Try again</a>');
 
         const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Logic: First user created in the DB becomes Admin automatically
         const userCount = await User.countDocuments();
         const role = (userCount === 0 || username === "Admin") ? 'Admin' : 'User';
 
