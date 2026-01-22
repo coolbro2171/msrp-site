@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; line-height: 1.6; }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .card { background: #fff; padding: 20px; border-left: 5px solid #007bff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+    </style>
+</head>
+<body>
+    <h1>Welcome Back, Authorized User</h1>
+    <hr>
+    <div class="card-grid">
+        <div class="card">
+            <h3>System Status</h3>
+            <p>All servers are currently operational. Latency is within normal parameters.</p>
+        </div>
+        <div class="card">
+            <h3>Recent Analytics</h3>
+            <p>Your profile views increased by 15% this week.</p>
+        </div>
+        <div class="card">
+            <h3>Private Documentation</h3>
+            <p>Access the internal wiki and shared project folders here.</p>
+        </div>
+    </div>
+    <br>
+    <a href="/logout">Log Out</a>
+</body>
+</html>
