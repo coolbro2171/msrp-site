@@ -19,7 +19,7 @@
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 1000px;
+            max-width: 1100px;
         }
 
         h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
@@ -53,6 +53,17 @@
         .role-staff { background-color: #007bff; } /* Blue */
         .role-user  { background-color: #6c757d; } /* Gray */
 
+        /* Banned Styling */
+        .status-banned {
+            background-color: #000;
+            color: #ff4d4d;
+            border: 1px solid #ff4d4d;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            margin-left: 10px;
+        }
+
         /* Button Styling */
         button {
             padding: 6px 12px;
@@ -62,10 +73,12 @@
             font-size: 0.85rem;
             margin-right: 5px;
             transition: 0.2s;
+            margin-bottom: 5px;
         }
 
         .btn-promote { background-color: #007bff; color: white; }
         .btn-demote { background-color: #fd7e14; color: white; }
+        .btn-ban { background-color: #6f42c1; color: white; } /* Purple */
         .btn-delete { background-color: #dc3545; color: white; }
         
         button:hover { opacity: 0.8; }
@@ -116,9 +129,10 @@
             users.forEach(user => {
                 const row = document.createElement('tr');
                 const roleClass = `role-${user.role.toLowerCase()}`;
+                const bannedTag = user.isBanned ? '<span class="status-banned">BANNED</span>' : '';
 
                 row.innerHTML = `
-                    <td>${user.username}</td>
+                    <td>${user.username} ${bannedTag}</td>
                     <td><span class="role-badge ${roleClass}">${user.role}</span></td>
                     <td>${renderActions(user, me)}</td>
                 `;
@@ -134,20 +148,28 @@
 
         let html = '';
 
-        // Promotion Logic
+        // 1. Promotion Logic
         if (currentUser.role === 'Owner' && (targetUser.role === 'User' || targetUser.role === 'Staff')) {
             html += `<button class="btn-promote" onclick="updateRole('${targetUser.username}', 'promote')">Make Admin</button>`;
         } else if (currentUser.role === 'Admin' && targetUser.role === 'User') {
             html += `<button class="btn-promote" onclick="updateRole('${targetUser.username}', 'promote')">Make Staff</button>`;
         }
 
-        // Demotion Logic (Owner Only)
+        // 2. Demotion Logic (Owner Only)
         if (currentUser.role === 'Owner' && (targetUser.role === 'Admin' || targetUser.role === 'Staff')) {
             html += `<button class="btn-demote" onclick="updateRole('${targetUser.username}', 'demote')">Demote to User</button>`;
         }
 
-        // Delete Logic
-        // Owner can delete anyone. Admins can delete Staff or Users.
+        // 3. Ban Logic
+        const canBan = currentUser.role === 'Owner' || 
+                      (currentUser.role === 'Admin' && (targetUser.role === 'User' || targetUser.role === 'Staff'));
+
+        if (canBan) {
+            const banText = targetUser.isBanned ? 'Unban User' : 'Ban User';
+            html += `<button class="btn-ban" onclick="toggleBan('${targetUser.username}')">${banText}</button>`;
+        }
+
+        // 4. Delete Logic
         const canDelete = currentUser.role === 'Owner' || 
                          (currentUser.role === 'Admin' && (targetUser.role === 'User' || targetUser.role === 'Staff'));
 
@@ -164,6 +186,13 @@
         const res = await fetch(endpoint, { method: 'POST' });
         if (res.ok) loadUsers();
         else alert('Error updating role');
+    }
+
+    async function toggleBan(username) {
+        if (!confirm(`Toggle ban status for ${username}?`)) return;
+        const res = await fetch(`/api/ban-user/${username}`, { method: 'POST' });
+        if (res.ok) loadUsers();
+        else alert('Error toggling ban status');
     }
 
     async function deleteUser(username) {
