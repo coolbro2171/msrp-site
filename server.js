@@ -13,11 +13,12 @@ mongoose.connect(MONGODB_URI)
     .then(() => console.log("Connected to Cloud Database successfully"))
     .catch(err => console.error("Database connection error:", err));
 
-// Schema with expanded roles: User, Staff, Admin, Owner
+// Schema with Banned status and expanded roles
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['User', 'Staff', 'Admin', 'Owner'], default: 'User' }
+    role: { type: String, enum: ['User', 'Staff', 'Admin', 'Owner'], default: 'User' },
+    isBanned: { type: Boolean, default: false }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -58,7 +59,7 @@ app.get('/admin', protect, async (req, res) => {
     }
 });
 
-// --- ROLE MANAGEMENT API ---
+// --- MANAGEMENT API ---
 
 // Promote/Update Role
 app.post('/api/promote-user/:username', protect, async (req, res) => {
@@ -68,7 +69,6 @@ app.post('/api/promote-user/:username', protect, async (req, res) => {
 
         if (!target) return res.status(404).send('User not found');
 
-        // Logic: Owner can promote User/Staff to Admin. Admin can promote User to Staff.
         if (currentUser.role === 'Owner') {
             await User.findOneAndUpdate({ username: req.params.username }, { role: 'Admin' });
         } else if (currentUser.role === 'Admin' && target.role === 'User') {
@@ -85,15 +85,38 @@ app.post('/api/promote-user/:username', protect, async (req, res) => {
 // Demote to User (Owner Only)
 app.post('/api/demote-user/:username', protect, async (req, res) => {
     if (req.session.role !== 'Owner') return res.status(403).send('Only the Owner can demote users.');
-    
     try {
         const target = await User.findOne({ username: req.params.username });
         if (target.role === 'Owner') return res.status(400).send('Cannot demote the Owner.');
-        
         await User.findOneAndUpdate({ username: req.params.username }, { role: 'User' });
         res.sendStatus(200);
     } catch (err) {
         res.status(500).send('Error demoting user');
+    }
+});
+
+// Ban/Unban User
+app.post('/api/ban-user/:username', protect, async (req, res) => {
+    try {
+        const currentUser = await User.findOne({ username: req.session.username });
+        const target = await User.findOne({ username: req.params.username });
+
+        if (!target) return res.status(404).send('User not found');
+        if (target.role === 'Owner') return res.status(403).send('The Owner cannot be banned.');
+
+        // Owner can ban anyone. Admin can ban Staff and Users.
+        const canBan = currentUser.role === 'Owner' || 
+                      (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
+
+        if (canBan) {
+            target.isBanned = !target.isBanned;
+            await target.save();
+            res.sendStatus(200);
+        } else {
+            res.status(403).send('Unauthorized to ban this user.');
+        }
+    } catch (err) {
+        res.status(500).send('Error toggling ban status');
     }
 });
 
@@ -106,7 +129,6 @@ app.delete('/api/delete-user/:username', protect, async (req, res) => {
         if (!target) return res.status(404).send('User not found');
         if (target.role === 'Owner') return res.status(403).send('Cannot delete the Owner.');
 
-        // Logic: Owner can delete anyone. Admin can delete Staff or Users.
         const canDelete = currentUser.role === 'Owner' || 
                          (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
 
@@ -124,7 +146,7 @@ app.delete('/api/delete-user/:username', protect, async (req, res) => {
 // --- AUTH & USER DATA ---
 
 app.get('/api/users', protect, async (req, res) => {
-    const users = await User.find({}, 'username role');
+    const users = await User.find({}, 'username role isBanned');
     res.json(users);
 });
 
@@ -137,8 +159,6 @@ app.post('/register', async (req, res) => {
         const { username, password } = req.body;
         const hashedPassword = await bcrypt.hash(password, 10);
         const userCount = await User.countDocuments();
-        
-        // First user is Owner, everyone else starts as User
         const role = (userCount === 0) ? 'Owner' : 'User';
 
         const newUser = new User({ username, password: hashedPassword, role });
@@ -156,7 +176,11 @@ app.post('/register', async (req, res) => {
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await User.findOne({ username });
+    
     if (user && await bcrypt.compare(password, user.password)) {
+        if (user.isBanned) {
+            return res.status(403).send('This account has been banned. <a href="/">Back to Home</a>');
+        }
         req.session.isLoggedIn = true;
         req.session.username = username;
         req.session.role = user.role;
