@@ -26,16 +26,22 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Session Setup with MongoStore (Fixes MemoryStore Warning)
+// Optimized Session Setup for Refreshes
 app.use(session({
     secret: 'secure-dev-key-789',
-    resave: false,
+    resave: true,                // Forces session update on refresh
     saveUninitialized: false,
     store: MongoStore.create({
         mongoUrl: MONGODB_URI,
-        collectionName: 'sessions'
+        collectionName: 'sessions',
+        ttl: 14 * 24 * 60 * 60   // Sessions persist for 14 days
     }),
-    cookie: { maxAge: 3600000 } // 1 hour
+    cookie: { 
+        maxAge: 3600000,         // 1 hour
+        secure: false,           // Set to true only if site uses HTTPS (SSL)
+        httpOnly: true,
+        sameSite: 'lax'          // Essential for keeping session across refreshes
+    }
 }));
 
 // Protection Middleware
@@ -52,16 +58,23 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
-app.get('/admin', protect, (req, res) => {
-    if (req.session.role === 'Admin') {
-        res.sendFile(path.join(__dirname, 'admin.html'));
-    } else {
-        res.status(403).send('Unauthorized. <a href="/dashboard">Go Back</a>');
+// Admin Route with Database Re-verification
+app.get('/admin', protect, async (req, res) => {
+    try {
+        // Double-check the role directly from the database on page load/refresh
+        const user = await User.findOne({ username: req.session.username });
+        
+        if (user && user.role === 'Admin') {
+            res.sendFile(path.join(__dirname, 'admin.html'));
+        } else {
+            res.status(403).send('Unauthorized. <a href="/dashboard">Go Back</a>');
+        }
+    } catch (err) {
+        res.redirect('/');
     }
 });
 
 // --- API ROUTES ---
-
 app.get('/api/me', protect, (req, res) => {
     res.json({ username: req.session.username, role: req.session.role });
 });
@@ -97,7 +110,6 @@ app.delete('/api/delete-user/:username', protect, async (req, res) => {
 });
 
 // --- AUTHENTICATION ---
-
 app.post('/register', async (req, res) => {
     try {
         const { username, password } = req.body;
