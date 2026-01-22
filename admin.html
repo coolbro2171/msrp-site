@@ -68,7 +68,6 @@
         .btn-delete { background-color: #dc3545; color: white; }
         
         button:hover { opacity: 0.8; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
 
         .nav { margin-bottom: 20px; text-align: right; }
         .nav a { text-decoration: none; color: #007bff; margin-left: 15px; font-weight: bold; }
@@ -99,31 +98,28 @@
 </div>
 
 <script>
-    // Load users on page startup
     async function loadUsers() {
         try {
-            const response = await fetch('/api/users');
-            const users = await response.json();
+            // Load current user profile first to check permissions
+            const meRes = await fetch('/api/me');
+            const me = await meRes.json();
+
+            // Load all users
+            const res = await fetch('/api/users');
+            const users = await res.json();
+            
             const tableBody = document.getElementById('userTable');
             tableBody.innerHTML = '';
 
-            // Get current user info to check if they are the Owner
-            const meResponse = await fetch('/api/me');
-            const me = await meResponse.json();
-
             users.forEach(user => {
                 const row = document.createElement('tr');
-                
-                // Determine CSS class for the role tag
                 const roleClass = user.role === 'Owner' ? 'role-owner' : 
                                   user.role === 'Admin' ? 'role-admin' : 'role-user';
 
                 row.innerHTML = `
                     <td>${user.username}</td>
                     <td><span class="role-badge ${roleClass}">${user.role}</span></td>
-                    <td>
-                        ${renderActions(user, me)}
-                    </td>
+                    <td>${renderActions(user, me)}</td>
                 `;
                 tableBody.appendChild(row);
             });
@@ -133,22 +129,22 @@
     }
 
     function renderActions(targetUser, currentUser) {
-        // 1. If the target is the Owner, nobody can touch them
+        // Prevent any actions on the Owner
         if (targetUser.role === 'Owner') return '<em>Primary Account</em>';
 
         let html = '';
 
-        // 2. Only the Owner can Promote or Demote
+        // Owner-specific powers: Promote and Demote
         if (currentUser.role === 'Owner') {
             if (targetUser.role === 'User') {
                 html += `<button class="btn-promote" onclick="updateRole('${targetUser.username}', 'promote')">Make Admin</button>`;
             } else if (targetUser.role === 'Admin') {
-                html += `<button class="btn-demote" onclick="updateRole('${targetUser.username}', 'demote')">Remove Admin</button>`;
+                // This fixes the "No Actions Available" issue for Admins when viewed by Owner
+                html += `<button class="btn-demote" onclick="updateRole('${targetUser.username}', 'demote')">Demote to User</button>`;
             }
         }
 
-        // 3. Owner can delete anyone (except themselves). 
-        // Admins can only delete standard Users (not other Admins).
+        // Delete Logic: Owner can delete any non-owner. Admins can only delete standard Users
         if (currentUser.role === 'Owner' || (currentUser.role === 'Admin' && targetUser.role === 'User')) {
             html += `<button class="btn-delete" onclick="deleteUser('${targetUser.username}')">Delete</button>`;
         }
@@ -158,30 +154,19 @@
 
     async function updateRole(username, action) {
         if (!confirm(`Are you sure you want to ${action} ${username}?`)) return;
-
         const endpoint = action === 'promote' ? `/api/promote-user/${username}` : `/api/demote-user/${username}`;
-        
-        const response = await fetch(endpoint, { method: 'POST' });
-        if (response.ok) {
-            loadUsers();
-        } else {
-            const errorText = await response.text();
-            alert('Error: ' + errorText);
-        }
+        const res = await fetch(endpoint, { method: 'POST' });
+        if (res.ok) loadUsers();
+        else alert('Error updating role');
     }
 
     async function deleteUser(username) {
-        if (!confirm(`Permanently delete ${username}? This cannot be undone.`)) return;
-
-        const response = await fetch(`/api/delete-user/${username}`, { method: 'DELETE' });
-        if (response.ok) {
-            loadUsers();
-        } else {
-            alert('Failed to delete user.');
-        }
+        if (!confirm(`Delete ${username} permanently?`)) return;
+        const res = await fetch(`/api/delete-user/${username}`, { method: 'DELETE' });
+        if (res.ok) loadUsers();
+        else alert('Error deleting user');
     }
 
-    // Initial load
     loadUsers();
 </script>
 
