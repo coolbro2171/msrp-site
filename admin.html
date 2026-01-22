@@ -5,165 +5,185 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Control Panel</title>
     <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            padding: 40px; 
-            background-color: #f4f4f9; 
-            margin: 0;
-        }
-        .container { 
-            max-width: 900px; 
-            margin: auto; 
-            background: white; 
-            padding: 30px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
-        }
-        nav { 
-            margin-bottom: 25px; 
-            padding-bottom: 15px; 
-            border-bottom: 2px solid #eee; 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            justify-content: center;
+            padding: 40px;
         }
-        nav a {
-            text-decoration: none;
-            color: #007bff;
-            font-weight: bold;
-            margin-left: 15px;
+
+        .admin-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 900px;
         }
-        nav a:hover { text-decoration: underline; }
-        
-        h1 { color: #333; margin-top: 0; }
-        
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-top: 20px; 
+
+        h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
         }
-        th, td { 
-            border: 1px solid #ddd; 
-            padding: 12px; 
-            text-align: left; 
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
         }
-        th { background-color: #f8f9fa; color: #555; }
-        
+
+        th { background-color: #f8f9fa; color: #666; }
+
+        /* Role Badge Styling */
         .role-badge {
-            padding: 4px 8px;
+            padding: 4px 10px;
             border-radius: 4px;
-            font-size: 0.85em;
+            font-size: 0.75rem;
             font-weight: bold;
             text-transform: uppercase;
+            color: white;
         }
-        .role-admin { background: #d4edda; color: #155724; }
-        .role-user { background: #e2e3e5; color: #383d41; }
 
-        .btn { 
-            padding: 8px 12px; 
-            cursor: pointer; 
-            border-radius: 6px; 
-            border: none; 
-            color: white; 
-            font-size: 0.9em;
-            transition: opacity 0.2s;
+        .role-owner { background-color: #dc3545; } /* Red for Owner */
+        .role-admin { background-color: #28a745; } /* Green for Admin */
+        .role-user  { background-color: #6c757d; } /* Gray for User */
+
+        /* Button Styling */
+        button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            margin-right: 5px;
+            transition: 0.2s;
         }
-        .btn:hover { opacity: 0.8; }
-        .delete-btn { background-color: #dc3545; }
-        .promote-btn { background-color: #28a745; margin-right: 5px; }
+
+        .btn-promote { background-color: #007bff; color: white; }
+        .btn-demote { background-color: #fd7e14; color: white; }
+        .btn-delete { background-color: #dc3545; color: white; }
+        
+        button:hover { opacity: 0.8; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        .nav { margin-bottom: 20px; text-align: right; }
+        .nav a { text-decoration: none; color: #007bff; margin-left: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <nav>
-            <div><strong>Admin Mode</strong></div>
-            <div>
-                <a href="/dashboard">Dashboard</a>
-                <a href="/logout" style="color: #666;">Logout</a>
-            </div>
-        </nav>
-
-        <h1>User Management</h1>
-        <p>Manage website permissions and user accounts below.</p>
-
-        <table id="userTable">
-            <thead>
-                <tr>
-                    <th>Username</th>
-                    <th>Current Role</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                </tbody>
-        </table>
+<div class="admin-container">
+    <div class="nav">
+        <a href="/dashboard">Dashboard</a>
+        <a href="/logout">Logout</a>
     </div>
 
-    <script>
-        // Load the users list as soon as the page opens
-        async function loadUsers() {
-            try {
-                const response = await fetch('/api/users');
-                if (!response.ok) throw new Error('Failed to fetch users');
+    <h2>User Management</h2>
+    <p>As the Owner, you can grant or revoke Admin permissions and manage all accounts.</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Current Role</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="userTable">
+            </tbody>
+    </table>
+</div>
+
+<script>
+    // Load users on page startup
+    async function loadUsers() {
+        try {
+            const response = await fetch('/api/users');
+            const users = await response.json();
+            const tableBody = document.getElementById('userTable');
+            tableBody.innerHTML = '';
+
+            // Get current user info to check if they are the Owner
+            const meResponse = await fetch('/api/me');
+            const me = await meResponse.json();
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
                 
-                const users = await response.json();
-                const tableBody = document.querySelector('#userTable tbody');
-                tableBody.innerHTML = '';
+                // Determine CSS class for the role tag
+                const roleClass = user.role === 'Owner' ? 'role-owner' : 
+                                  user.role === 'Admin' ? 'role-admin' : 'role-user';
 
-                users.forEach(user => {
-                    const roleClass = user.role === 'Admin' ? 'role-admin' : 'role-user';
-                    
-                    const row = `
-                        <tr>
-                            <td>${user.username}</td>
-                            <td><span class="role-badge ${roleClass}">${user.role || 'User'}</span></td>
-                            <td>
-                                ${user.role !== 'Admin' ? 
-                                    `<button class="btn promote-btn" onclick="makeAdmin('${user.username}')">Make Admin</button>` : 
-                                    `<span style="color: #999; font-size: 0.9em; margin-right: 10px;">Already Admin</span>`
-                                }
-                                <button class="btn delete-btn" onclick="deleteUser('${user.username}')">Delete</button>
-                            </td>
-                        </tr>
-                    `;
-                    tableBody.insertAdjacentHTML('beforeend', row);
-                });
-            } catch (err) {
-                console.error('Error:', err);
+                row.innerHTML = `
+                    <td>${user.username}</td>
+                    <td><span class="role-badge ${roleClass}">${user.role}</span></td>
+                    <td>
+                        ${renderActions(user, me)}
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        } catch (err) {
+            console.error('Error loading users:', err);
+        }
+    }
+
+    function renderActions(targetUser, currentUser) {
+        // 1. If the target is the Owner, nobody can touch them
+        if (targetUser.role === 'Owner') return '<em>Primary Account</em>';
+
+        let html = '';
+
+        // 2. Only the Owner can Promote or Demote
+        if (currentUser.role === 'Owner') {
+            if (targetUser.role === 'User') {
+                html += `<button class="btn-promote" onclick="updateRole('${targetUser.username}', 'promote')">Make Admin</button>`;
+            } else if (targetUser.role === 'Admin') {
+                html += `<button class="btn-demote" onclick="updateRole('${targetUser.username}', 'demote')">Remove Admin</button>`;
             }
         }
 
-        // Action: Grant Admin Permissions
-        async function makeAdmin(username) {
-            if (confirm(`Give Admin access to ${username}?`)) {
-                const response = await fetch(`/api/promote-user/${username}`, { 
-                    method: 'POST' 
-                });
-                if (response.ok) {
-                    loadUsers(); // Refresh the table
-                } else {
-                    alert('Error promoting user.');
-                }
-            }
+        // 3. Owner can delete anyone (except themselves). 
+        // Admins can only delete standard Users (not other Admins).
+        if (currentUser.role === 'Owner' || (currentUser.role === 'Admin' && targetUser.role === 'User')) {
+            html += `<button class="btn-delete" onclick="deleteUser('${targetUser.username}')">Delete</button>`;
         }
 
-        // Action: Delete User
-        async function deleteUser(username) {
-            if (confirm(`Are you certain you want to delete ${username}? This cannot be undone.`)) {
-                const response = await fetch(`/api/delete-user/${username}`, { 
-                    method: 'DELETE' 
-                });
-                if (response.ok) {
-                    loadUsers(); // Refresh the table
-                } else {
-                    alert('Error deleting user.');
-                }
-            }
-        }
+        return html || 'No Actions Available';
+    }
 
-        // Initial load
-        loadUsers();
-    </script>
+    async function updateRole(username, action) {
+        if (!confirm(`Are you sure you want to ${action} ${username}?`)) return;
+
+        const endpoint = action === 'promote' ? `/api/promote-user/${username}` : `/api/demote-user/${username}`;
+        
+        const response = await fetch(endpoint, { method: 'POST' });
+        if (response.ok) {
+            loadUsers();
+        } else {
+            const errorText = await response.text();
+            alert('Error: ' + errorText);
+        }
+    }
+
+    async function deleteUser(username) {
+        if (!confirm(`Permanently delete ${username}? This cannot be undone.`)) return;
+
+        const response = await fetch(`/api/delete-user/${username}`, { method: 'DELETE' });
+        if (response.ok) {
+            loadUsers();
+        } else {
+            alert('Failed to delete user.');
+        }
+    }
+
+    // Initial load
+    loadUsers();
+</script>
+
 </body>
 </html>
