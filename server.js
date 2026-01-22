@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const path = require('path');
 const session = require('express-session');
 const mongoose = require('mongoose');
+const MongoStore = require('connect-mongo');
 const app = express();
 
 // --- DATABASE CONNECTION ---
@@ -25,10 +26,15 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// Session Setup with MongoStore (Fixes MemoryStore Warning)
 app.use(session({
     secret: 'secure-dev-key-789',
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: MONGODB_URI,
+        collectionName: 'sessions'
+    }),
     cookie: { maxAge: 3600000 } // 1 hour
 }));
 
@@ -56,12 +62,10 @@ app.get('/admin', protect, (req, res) => {
 
 // --- API ROUTES ---
 
-// Identify the current user for the dashboard
 app.get('/api/me', protect, (req, res) => {
     res.json({ username: req.session.username, role: req.session.role });
 });
 
-// Get all users (Admin Only)
 app.get('/api/users', protect, async (req, res) => {
     if (req.session.role !== 'Admin') return res.sendStatus(403);
     try {
@@ -72,7 +76,6 @@ app.get('/api/users', protect, async (req, res) => {
     }
 });
 
-// Promote a user to Admin (Admin Only)
 app.post('/api/promote-user/:username', protect, async (req, res) => {
     if (req.session.role !== 'Admin') return res.sendStatus(403);
     try {
@@ -83,7 +86,6 @@ app.post('/api/promote-user/:username', protect, async (req, res) => {
     }
 });
 
-// Delete a user (Admin Only)
 app.delete('/api/delete-user/:username', protect, async (req, res) => {
     if (req.session.role !== 'Admin') return res.sendStatus(403);
     try {
@@ -99,14 +101,10 @@ app.delete('/api/delete-user/:username', protect, async (req, res) => {
 app.post('/register', async (req, res) => {
     try {
         const { username, password } = req.body;
-        
-        // Check if user already exists
         const existingUser = await User.findOne({ username });
         if (existingUser) return res.send('User already exists. <a href="/register">Try again</a>');
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        
-        // Determine role: First user or "Admin" becomes Admin
         const userCount = await User.countDocuments();
         const role = (userCount === 0 || username === "Admin") ? 'Admin' : 'User';
 
@@ -148,4 +146,3 @@ app.get('/logout', (req, res) => {
 // --- START SERVER ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server live on port ${PORT}`));
-
