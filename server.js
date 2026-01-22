@@ -3,16 +3,16 @@ const bcrypt = require('bcrypt');
 const path = require('path');
 const app = express();
 
-// This middleware allows the server to read data sent from your HTML forms
+// Middleware to parse form data from your HTML pages
 app.use(express.urlencoded({ extended: true }));
 
-// This tells the server to look for your CSS/Images in the current folder
+// Serve static files (like CSS or images) from the current folder
 app.use(express.static(__dirname));
 
-// Temporary "database" in memory (This clears if the server restarts)
+// Temporary in-memory database
 const users = []; 
 
-// 1. ROUTE: Home Page (Login)
+// 1. ROUTE: Home Page (Serves the Login page)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -22,10 +22,9 @@ app.get('/register', (req, res) => {
     res.sendFile(path.join(__dirname, 'register.html'));
 });
 
-// 3. LOGIC: Handle User Registration
+// 3. LOGIC: Handle Registration and go straight to Dashboard
 app.post('/register', async (req, res) => {
     try {
-        // Encrypt the password before saving it
         const hashedPassword = await bcrypt.hash(req.body.password, 10);
         
         users.push({
@@ -33,30 +32,29 @@ app.post('/register', async (req, res) => {
             password: hashedPassword
         });
 
-        // Redirect back to login after successful sign-up
-        res.send('Account created successfully! <a href="/">Click here to Login</a>');
+        // After registration, skip the login page and show the dashboard
+        res.sendFile(path.join(__dirname, 'dashboard.html'));
     } catch {
-        res.status(500).send('Error creating account. Please try again.');
+        res.status(500).send('Error creating account. <a href="/register">Try again</a>');
     }
 });
 
-// 4. LOGIC: Handle User Login
+// 4. LOGIC: Handle Login
 app.post('/login', async (req, res) => {
     const user = users.find(u => u.username === req.body.username);
     
-    // Check if user exists and if password matches the hashed version
     if (user && await bcrypt.compare(req.body.password, user.password)) {
         res.sendFile(path.join(__dirname, 'dashboard.html'));
     } else {
-        res.status(401).send('Invalid username or password. <a href="/">Try again</a>');
+        res.status(401).send('Invalid login. <a href="/">Back to Login</a>');
     }
 });
 
-// 5. SERVER START: Uses Render's port or 3000 locally
+// 5. SERVER START: Uses Render's dynamic port or 3000 for local testing
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`------------------------------------------`);
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`Visit: http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Local link: http://localhost:${PORT}`);
     console.log(`------------------------------------------`);
 });
