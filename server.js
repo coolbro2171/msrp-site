@@ -12,12 +12,11 @@ mongoose.connect(MONGODB_URI)
     .then(() => console.log("Connected to Cloud Database successfully"))
     .catch(err => console.error("Database connection error:", err));
 
-const userSchema = new mongoose.Schema({
+const User = mongoose.model('User', new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role: { type: String, enum: ['User', 'Admin', 'Owner'], default: 'User' }
-});
-const User = mongoose.model('User', userSchema);
+}));
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -38,9 +37,7 @@ const protect = (req, res, next) => {
 
 // --- ROUTES ---
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
-
 app.get('/admin', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     if (user && (user.role === 'Admin' || user.role === 'Owner')) {
@@ -52,18 +49,13 @@ app.get('/admin', protect, async (req, res) => {
 
 // --- OWNER-ONLY API ---
 app.post('/api/promote-user/:username', protect, async (req, res) => {
-    // Check DB directly for Owner status to prevent session lag errors
-    const currentUser = await User.findOne({ username: req.session.username });
-    if (!currentUser || currentUser.role !== 'Owner') return res.status(403).send('Only the Owner can promote.');
-    
+    if (req.session.role !== 'Owner') return res.status(403).send('Owner only.');
     await User.findOneAndUpdate({ username: req.params.username }, { role: 'Admin' });
     res.sendStatus(200);
 });
 
 app.post('/api/demote-user/:username', protect, async (req, res) => {
-    const currentUser = await User.findOne({ username: req.session.username });
-    if (!currentUser || currentUser.role !== 'Owner') return res.status(403).send('Only the Owner can demote.');
-    
+    if (req.session.role !== 'Owner') return res.status(403).send('Owner only.');
     await User.findOneAndUpdate({ username: req.params.username }, { role: 'User' });
     res.sendStatus(200);
 });
@@ -71,39 +63,25 @@ app.post('/api/demote-user/:username', protect, async (req, res) => {
 app.delete('/api/delete-user/:username', protect, async (req, res) => {
     const currentUser = await User.findOne({ username: req.session.username });
     const target = await User.findOne({ username: req.params.username });
-
     if (target.role === 'Owner') return res.status(403).send('Cannot delete Owner.');
-    if (currentUser.role === 'Admin' && target.role === 'Admin') return res.status(403).send('Admins cannot delete Admins.');
-
+    if (currentUser.role === 'Admin' && target.role === 'Admin') return res.status(403).send('Admin cannot delete Admin.');
     await User.findOneAndDelete({ username: req.params.username });
     res.sendStatus(200);
 });
 
+// --- AUTH & HELPERS ---
 app.get('/api/users', protect, async (req, res) => {
     const users = await User.find({}, 'username role');
     res.json(users);
 });
 
-// --- AUTH ---
-app.post('/register', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const userCount = await User.countDocuments();
-        
-        // The first person to register in the empty database becomes Owner
-        const role = (userCount === 0) ? 'Owner' : 'User';
+app.get('/api/me', protect, (req, res) => {
+    res.json({ username: req.session.username, role: req.session.role });
+});
 
-        const newUser = new User({ username, password: hashedPassword, role });
-        await newUser.save();
-        
-        req.session.isLoggedIn = true;
-        req.session.username = username;
-        req.session.role = role;
-        res.redirect('/dashboard');
-    } catch (err) {
-        res.status(500).send('Registration error.');
-    }
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
 });
 
 app.post('/login', async (req, res) => {
@@ -117,10 +95,6 @@ app.post('/login', async (req, res) => {
     } else {
         res.status(401).send('Invalid login.');
     }
-});
-
-app.get('/api/me', protect, (req, res) => {
-    res.json({ username: req.session.username, role: req.session.role });
 });
 
 app.listen(process.env.PORT || 3000, () => console.log("Server Live!"));
