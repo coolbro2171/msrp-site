@@ -6,18 +6,22 @@ const mongoose = require('mongoose');
 const MongoStore = require('connect-mongo');
 const app = express();
 
+// --- DATABASE CONNECTION ---
 const MONGODB_URI = "mongodb+srv://cool_bro2171:Leonardo3@msrp-site.axszmf7.mongodb.net/MSRP_Database?retryWrites=true&w=majority&appName=MSRP-Site";
 
 mongoose.connect(MONGODB_URI)
     .then(() => console.log("Connected to Cloud Database successfully"))
     .catch(err => console.error("Database connection error:", err));
 
-const User = mongoose.model('User', new mongoose.Schema({
+// Schema with expanded roles: User, Staff, Admin, Owner
+const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['User', 'Admin', 'Owner'], default: 'User' }
-}));
+    role: { type: String, enum: ['User', 'Staff', 'Admin', 'Owner'], default: 'User' }
+});
+const User = mongoose.model('User', userSchema);
 
+// --- MIDDLEWARE ---
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(__dirname));
@@ -26,8 +30,15 @@ app.use(session({
     secret: 'secure-dev-key-789',
     resave: true,
     saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: MONGODB_URI, collectionName: 'sessions' }),
-    cookie: { maxAge: 3600000, sameSite: 'lax', secure: false }
+    store: MongoStore.create({
+        mongoUrl: MONGODB_URI,
+        collectionName: 'sessions'
+    }),
+    cookie: { 
+        maxAge: 3600000, 
+        sameSite: 'lax', 
+        secure: false 
+    }
 }));
 
 const protect = (req, res, next) => {
@@ -35,7 +46,7 @@ const protect = (req, res, next) => {
     else res.redirect('/');
 };
 
-// --- ROUTES ---
+// --- HTML ROUTES ---
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/admin', protect, async (req, res) => {
@@ -43,33 +54,75 @@ app.get('/admin', protect, async (req, res) => {
     if (user && (user.role === 'Admin' || user.role === 'Owner')) {
         res.sendFile(path.join(__dirname, 'admin.html'));
     } else {
-        res.status(403).send('Unauthorized.');
+        res.status(403).send('Unauthorized. Only Admins and the Owner can access this page.');
     }
 });
 
-// --- OWNER-ONLY API ---
+// --- ROLE MANAGEMENT API ---
+
+// Promote/Update Role
 app.post('/api/promote-user/:username', protect, async (req, res) => {
-    if (req.session.role !== 'Owner') return res.status(403).send('Owner only.');
-    await User.findOneAndUpdate({ username: req.params.username }, { role: 'Admin' });
-    res.sendStatus(200);
+    try {
+        const currentUser = await User.findOne({ username: req.session.username });
+        const target = await User.findOne({ username: req.params.username });
+
+        if (!target) return res.status(404).send('User not found');
+
+        // Logic: Owner can promote User/Staff to Admin. Admin can promote User to Staff.
+        if (currentUser.role === 'Owner') {
+            await User.findOneAndUpdate({ username: req.params.username }, { role: 'Admin' });
+        } else if (currentUser.role === 'Admin' && target.role === 'User') {
+            await User.findOneAndUpdate({ username: req.params.username }, { role: 'Staff' });
+        } else {
+            return res.status(403).send('Unauthorized to promote this user.');
+        }
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).send('Error updating role');
+    }
 });
 
+// Demote to User (Owner Only)
 app.post('/api/demote-user/:username', protect, async (req, res) => {
-    if (req.session.role !== 'Owner') return res.status(403).send('Owner only.');
-    await User.findOneAndUpdate({ username: req.params.username }, { role: 'User' });
-    res.sendStatus(200);
+    if (req.session.role !== 'Owner') return res.status(403).send('Only the Owner can demote users.');
+    
+    try {
+        const target = await User.findOne({ username: req.params.username });
+        if (target.role === 'Owner') return res.status(400).send('Cannot demote the Owner.');
+        
+        await User.findOneAndUpdate({ username: req.params.username }, { role: 'User' });
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).send('Error demoting user');
+    }
 });
 
+// Delete User
 app.delete('/api/delete-user/:username', protect, async (req, res) => {
-    const currentUser = await User.findOne({ username: req.session.username });
-    const target = await User.findOne({ username: req.params.username });
-    if (target.role === 'Owner') return res.status(403).send('Cannot delete Owner.');
-    if (currentUser.role === 'Admin' && target.role === 'Admin') return res.status(403).send('Admin cannot delete Admin.');
-    await User.findOneAndDelete({ username: req.params.username });
-    res.sendStatus(200);
+    try {
+        const currentUser = await User.findOne({ username: req.session.username });
+        const target = await User.findOne({ username: req.params.username });
+
+        if (!target) return res.status(404).send('User not found');
+        if (target.role === 'Owner') return res.status(403).send('Cannot delete the Owner.');
+
+        // Logic: Owner can delete anyone. Admin can delete Staff or Users.
+        const canDelete = currentUser.role === 'Owner' || 
+                         (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
+
+        if (canDelete) {
+            await User.findOneAndDelete({ username: req.params.username });
+            res.sendStatus(200);
+        } else {
+            res.status(403).send('Unauthorized to delete this user.');
+        }
+    } catch (err) {
+        res.status(500).send('Error deleting user');
+    }
 });
 
-// --- AUTH & HELPERS ---
+// --- AUTH & USER DATA ---
+
 app.get('/api/users', protect, async (req, res) => {
     const users = await User.find({}, 'username role');
     res.json(users);
@@ -79,9 +132,25 @@ app.get('/api/me', protect, (req, res) => {
     res.json({ username: req.session.username, role: req.session.role });
 });
 
-app.get('/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/');
+app.post('/register', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const userCount = await User.countDocuments();
+        
+        // First user is Owner, everyone else starts as User
+        const role = (userCount === 0) ? 'Owner' : 'User';
+
+        const newUser = new User({ username, password: hashedPassword, role });
+        await newUser.save();
+        
+        req.session.isLoggedIn = true;
+        req.session.username = username;
+        req.session.role = role;
+        res.redirect('/dashboard');
+    } catch (err) {
+        res.status(500).send('Registration error.');
+    }
 });
 
 app.post('/login', async (req, res) => {
@@ -93,8 +162,13 @@ app.post('/login', async (req, res) => {
         req.session.role = user.role;
         res.redirect((user.role === 'Admin' || user.role === 'Owner') ? '/admin' : '/dashboard');
     } else {
-        res.status(401).send('Invalid login.');
+        res.status(401).send('Invalid credentials.');
     }
+});
+
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
 });
 
 app.listen(process.env.PORT || 3000, () => console.log("Server Live!"));
