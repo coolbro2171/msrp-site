@@ -19,7 +19,7 @@
             border-radius: 12px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             width: 100%;
-            max-width: 900px;
+            max-width: 1000px;
         }
 
         h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
@@ -48,9 +48,10 @@
             color: white;
         }
 
-        .role-owner { background-color: #dc3545; } /* Red for Owner */
-        .role-admin { background-color: #28a745; } /* Green for Admin */
-        .role-user  { background-color: #6c757d; } /* Gray for User */
+        .role-owner { background-color: #dc3545; } /* Red */
+        .role-admin { background-color: #28a745; } /* Green */
+        .role-staff { background-color: #007bff; } /* Blue */
+        .role-user  { background-color: #6c757d; } /* Gray */
 
         /* Button Styling */
         button {
@@ -82,7 +83,7 @@
     </div>
 
     <h2>User Management</h2>
-    <p>As the Owner, you can grant or revoke Admin permissions and manage all accounts.</p>
+    <p id="welcome-msg">Loading permissions...</p>
 
     <table>
         <thead>
@@ -100,11 +101,12 @@
 <script>
     async function loadUsers() {
         try {
-            // Load current user profile first to check permissions
             const meRes = await fetch('/api/me');
             const me = await meRes.json();
+            
+            document.getElementById('welcome-msg').innerText = 
+                `Logged in as: ${me.username} (${me.role})`;
 
-            // Load all users
             const res = await fetch('/api/users');
             const users = await res.json();
             
@@ -113,8 +115,7 @@
 
             users.forEach(user => {
                 const row = document.createElement('tr');
-                const roleClass = user.role === 'Owner' ? 'role-owner' : 
-                                  user.role === 'Admin' ? 'role-admin' : 'role-user';
+                const roleClass = `role-${user.role.toLowerCase()}`;
 
                 row.innerHTML = `
                     <td>${user.username}</td>
@@ -129,23 +130,28 @@
     }
 
     function renderActions(targetUser, currentUser) {
-        // Prevent any actions on the Owner
         if (targetUser.role === 'Owner') return '<em>Primary Account</em>';
 
         let html = '';
 
-        // Owner-specific powers: Promote and Demote
-        if (currentUser.role === 'Owner') {
-            if (targetUser.role === 'User') {
-                html += `<button class="btn-promote" onclick="updateRole('${targetUser.username}', 'promote')">Make Admin</button>`;
-            } else if (targetUser.role === 'Admin') {
-                // This fixes the "No Actions Available" issue for Admins when viewed by Owner
-                html += `<button class="btn-demote" onclick="updateRole('${targetUser.username}', 'demote')">Demote to User</button>`;
-            }
+        // Promotion Logic
+        if (currentUser.role === 'Owner' && (targetUser.role === 'User' || targetUser.role === 'Staff')) {
+            html += `<button class="btn-promote" onclick="updateRole('${targetUser.username}', 'promote')">Make Admin</button>`;
+        } else if (currentUser.role === 'Admin' && targetUser.role === 'User') {
+            html += `<button class="btn-promote" onclick="updateRole('${targetUser.username}', 'promote')">Make Staff</button>`;
         }
 
-        // Delete Logic: Owner can delete any non-owner. Admins can only delete standard Users
-        if (currentUser.role === 'Owner' || (currentUser.role === 'Admin' && targetUser.role === 'User')) {
+        // Demotion Logic (Owner Only)
+        if (currentUser.role === 'Owner' && (targetUser.role === 'Admin' || targetUser.role === 'Staff')) {
+            html += `<button class="btn-demote" onclick="updateRole('${targetUser.username}', 'demote')">Demote to User</button>`;
+        }
+
+        // Delete Logic
+        // Owner can delete anyone. Admins can delete Staff or Users.
+        const canDelete = currentUser.role === 'Owner' || 
+                         (currentUser.role === 'Admin' && (targetUser.role === 'User' || targetUser.role === 'Staff'));
+
+        if (canDelete) {
             html += `<button class="btn-delete" onclick="deleteUser('${targetUser.username}')">Delete</button>`;
         }
 
