@@ -1,141 +1,97 @@
-const express = require('express');
-const bcrypt = require('bcrypt');
-const path = require('path');
-const fs = require('fs');
-const session = require('express-session');
-const app = express();
-
-// Middleware
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname));
-
-// Session Configuration (The "VIP Pass")
-app.use(session({
-    secret: 'secure-dev-key-789',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 3600000 } // 1 hour
-}));
-
-const DATA_FILE = path.join(__dirname, 'users.json');
-
-// Helper: Load users from file
-function loadUsers() {
-    try {
-        if (!fs.existsSync(DATA_FILE)) {
-            fs.writeFileSync(DATA_FILE, JSON.stringify([]));
-            return [];
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f0f2f5; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
         }
-        const data = fs.readFileSync(DATA_FILE, 'utf8');
-        return JSON.parse(data);
-    } catch (err) {
-        return [];
-    }
-}
-
-// Helper: Save users to file
-function saveUsers(users) {
-    try {
-        fs.writeFileSync(DATA_FILE, JSON.stringify(users, null, 2));
-    } catch (err) {
-        console.error("Save error:", err);
-    }
-}
-
-// Security Middleware: Checks if user is logged in
-const protect = (req, res, next) => {
-    if (req.session.isLoggedIn) {
-        next();
-    } else {
-        res.redirect('/');
-    }
-};
-
-// --- HTML PAGE ROUTES ---
-
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.get('/register', (req, res) => {
-    res.sendFile(path.join(__dirname, 'register.html'));
-});
-
-app.get('/dashboard', protect, (req, res) => {
-    res.sendFile(path.join(__dirname, 'dashboard.html'));
-});
-
-app.get('/admin', protect, (req, res) => {
-    if (req.session.username === 'Admin') {
-        res.sendFile(path.join(__dirname, 'admin.html'));
-    } else {
-        res.status(403).send('Access Denied. <a href="/dashboard">Back</a>');
-    }
-});
-
-// --- ADMIN API ROUTES (Fixes the 404 Error) ---
-
-app.get('/api/users', protect, (req, res) => {
-    if (req.session.username !== 'Admin') return res.status(403).send('Unauthorized');
-    const users = loadUsers();
-    // Only send usernames to the frontend for safety
-    const userList = users.map(u => ({ username: u.username }));
-    res.json(userList);
-});
-
-app.delete('/api/delete-user/:username', protect, (req, res) => {
-    if (req.session.username !== 'Admin') return res.status(403).send('Unauthorized');
-    let users = loadUsers();
-    users = users.filter(u => u.username !== req.params.username);
-    saveUsers(users);
-    res.sendStatus(200);
-});
-
-// --- POST LOGIC ---
-
-app.post('/register', async (req, res) => {
-    try {
-        const users = loadUsers();
-        if (users.find(u => u.username === req.body.username)) {
-            return res.send('Username taken. <a href="/register">Try again</a>');
+        .dashboard-card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
+            text-align: center; 
+            width: 100%; 
+            max-width: 400px; 
         }
-        const hashedPassword = await bcrypt.hash(req.body.password, 10);
-        users.push({ username: req.body.username, password: hashedPassword });
-        saveUsers(users);
+        h1 { color: #1c1e21; margin-bottom: 10px; }
+        p { color: #606770; margin-bottom: 30px; }
         
-        req.session.isLoggedIn = true;
-        req.session.username = req.body.username;
-        res.redirect('/dashboard');
-    } catch {
-        res.status(500).send('Error registering.');
-    }
-});
-
-app.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-    const users = loadUsers();
-    const user = users.find(u => u.username === username);
-    
-    if (user && await bcrypt.compare(password, user.password)) {
-        req.session.isLoggedIn = true;
-        req.session.username = username;
-
-        if (username === "Admin" && password === "Cool_bro2171") {
-            return res.redirect('/admin');
+        /* Admin Link Style */
+        #adminSection {
+            display: none; /* Hidden by default */
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 8px;
         }
-        res.redirect('/dashboard');
-    } else {
-        res.status(401).send('Invalid login. <a href="/">Back</a>');
-    }
-});
+        .admin-link {
+            color: #856404;
+            text-decoration: none;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
 
-app.get('/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/');
-});
+        .logout-btn { 
+            display: inline-block; 
+            padding: 12px 24px; 
+            background-color: #007bff; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 6px; 
+            font-weight: 600; 
+            transition: background 0.2s; 
+        }
+        .logout-btn:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
 
-// --- START SERVER ---
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+    <div class="dashboard-card">
+        <div id="adminSection">
+            <a href="/admin" class="admin-link">
+                <span>🛡️</span> Open Admin Control Panel
+            </a>
+        </div>
+
+        <h1>Welcome back!</h1>
+        <p>You have successfully logged into your account.</p>
+        
+        <a href="/logout" class="logout-btn">Logout</a>
+    </div>
+
+    <script>
+        // When the page loads, ask the server who is logged in
+        async function checkUserRole() {
+            try {
+                const response = await fetch('/api/me');
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // If the user's role is Admin, show the hidden link
+                    if (data.role === 'Admin') {
+                        document.getElementById('adminSection').style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching user data:", err);
+            }
+        }
+
+        checkUserRole();
+    </script>
+</body>
+</html>
