@@ -13,11 +13,10 @@ app.use(express.static(__dirname));
 // Path to your local "database" file
 const DATA_FILE = path.join(__dirname, 'users.json');
 
-// Helper function: Reads the users.json file and turns it into a JavaScript list
+// Helper function: Reads the users.json file
 function loadUsers() {
     try {
         if (!fs.existsSync(DATA_FILE)) {
-            // If the file doesn't exist yet, create it with an empty list
             fs.writeFileSync(DATA_FILE, JSON.stringify([]));
             return [];
         }
@@ -29,7 +28,7 @@ function loadUsers() {
     }
 }
 
-// Helper function: Saves the JavaScript list back into the users.json file
+// Helper function: Saves the list back into users.json
 function saveUsers(users) {
     try {
         fs.writeFileSync(DATA_FILE, JSON.stringify(users, null, 2));
@@ -38,7 +37,7 @@ function saveUsers(users) {
     }
 }
 
-// 1. ROUTE: Home (Login)
+// 1. ROUTE: Home (Login Page)
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -53,7 +52,6 @@ app.post('/register', async (req, res) => {
     try {
         const users = loadUsers();
         
-        // Check if user already exists
         if (users.find(u => u.username === req.body.username)) {
             return res.send('Username already taken. <a href="/register">Try another</a>');
         }
@@ -65,19 +63,28 @@ app.post('/register', async (req, res) => {
             password: hashedPassword
         });
 
-        saveUsers(users); // Permanently save to users.json
+        saveUsers(users);
         res.sendFile(path.join(__dirname, 'dashboard.html'));
     } catch {
         res.status(500).send('Error during registration.');
     }
 });
 
-// 4. LOGIC: Login
+// 4. LOGIC: Login with Admin Check
 app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
     const users = loadUsers();
-    const user = users.find(u => u.username === req.body.username);
+    const user = users.find(u => u.username === username);
     
-    if (user && await bcrypt.compare(req.body.password, user.password)) {
+    if (user && await bcrypt.compare(password, user.password)) {
+        
+        // Check for specific Admin credentials
+        if (username === "Admin" && password === "Cool_bro2171") {
+            console.log("Admin access granted.");
+            return res.sendFile(path.join(__dirname, 'admin.html'));
+        }
+
+        // Standard user access
         res.sendFile(path.join(__dirname, 'dashboard.html'));
     } else {
         res.status(401).send('Invalid login. <a href="/">Back to Login</a>');
