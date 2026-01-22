@@ -2,22 +2,24 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const path = require('path');
 const fs = require('fs');
-const session = require('express-session'); // New library for cookies
+const session = require('express-session');
 const app = express();
 
+// Middleware
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
-// Configure the session "VIP Pass" settings
+// Session Configuration
 app.use(session({
-    secret: 'super-secret-key-123', // Change this to any random string
+    secret: 'secure-dev-key-789', // A secret key to sign the session ID cookie
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 3600000 } // Pass expires in 1 hour
+    cookie: { maxAge: 3600000 } // Session expires in 1 hour (in milliseconds)
 }));
 
 const DATA_FILE = path.join(__dirname, 'users.json');
 
+// Helper: Load users from file
 function loadUsers() {
     try {
         if (!fs.existsSync(DATA_FILE)) {
@@ -31,78 +33,106 @@ function loadUsers() {
     }
 }
 
+// Helper: Save users to file
 function saveUsers(users) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(users, null, 2));
+    try {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(users, null, 2));
+    } catch (err) {
+        console.error("Save error:", err);
+    }
 }
 
-// SECURITY GUARD: This function checks if a user has a valid session
+// Security Middleware: Checks if the user is logged in
 const protect = (req, res, next) => {
     if (req.session.isLoggedIn) {
-        next(); // User is logged in, let them through
+        next();
     } else {
-        res.redirect('/'); // Not logged in, send to login page
+        res.redirect('/');
     }
 };
 
-// 1. ROUTE: Login Page
+// --- ROUTES ---
+
+// Login Page
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// 2. ROUTE: Registration Page
+// Registration Page
 app.get('/register', (req, res) => {
     res.sendFile(path.join(__dirname, 'register.html'));
 });
 
-// 3. SECURE ROUTE: Dashboard (Protected)
+// Protected Dashboard
 app.get('/dashboard', protect, (req, res) => {
     res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
-// 4. SECURE ROUTE: Admin Page (Protected)
+// Protected Admin Page
 app.get('/admin', protect, (req, res) => {
     if (req.session.username === 'Admin') {
         res.sendFile(path.join(__dirname, 'admin.html'));
     } else {
-        res.status(403).send('Access Denied: Admins Only. <a href="/dashboard">Go back</a>');
+        res.status(403).send('Access Denied: Admins Only. <a href="/dashboard">Return to Dashboard</a>');
     }
 });
 
-// 5. LOGIC: Register
+// Logout Route
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
+});
+
+// --- POST HANDLERS ---
+
+// Register Logic
 app.post('/register', async (req, res) => {
-    const users = loadUsers();
-    if (users.find(u => u.username === req.body.username)) {
-        return res.send('User exists. <a href="/register">Try again</a>');
+    try {
+        const users = loadUsers();
+        if (users.find(u => u.username === req.body.username)) {
+            return res.send('Username already exists. <a href="/register">Try again</a>');
+        }
+
+        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+        users.push({
+            username: req.body.username,
+            password: hashedPassword
+        });
+
+        saveUsers(users);
+
+        // Auto-login after registration
+        req.session.isLoggedIn = true;
+        req.session.username = req.body.username;
+        res.redirect('/dashboard');
+    } catch {
+        res.status(500).send('Error during registration.');
     }
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
-    users.push({ username: req.body.username, password: hashedPassword });
-    saveUsers(users);
-    
-    // Log them in immediately
-    req.session.isLoggedIn = true;
-    req.session.username = req.body.username;
-    res.redirect('/dashboard');
 });
 
-// 6. LOGIC: Login
+// Login Logic
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const users = loadUsers();
     const user = users.find(u => u.username === username);
     
     if (user && await bcrypt.compare(password, user.password)) {
-        // Create the session
+        // Successful login: Create session
         req.session.isLoggedIn = true;
         req.session.username = username;
 
+        // Redirect based on identity
         if (username === "Admin" && password === "Cool_bro2171") {
             return res.redirect('/admin');
         }
         res.redirect('/dashboard');
     } else {
-        res.status(401).send('Invalid login. <a href="/">Back</a>');
+        res.status(401).send('Invalid credentials. <a href="/">Try again</a>');
     }
 });
 
+// --- START SERVER ---
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Server is live at http://localhost:${PORT}`);
+});
