@@ -42,9 +42,7 @@ app.use(session({
 }));
 
 // --- KEEP-ALIVE ROUTE ---
-app.get('/ping', (req, res) => {
-    res.status(200).send('Server is awake');
-});
+app.get('/ping', (req, res) => res.status(200).send('Server is awake'));
 
 const protect = (req, res, next) => {
     if (req.session.isLoggedIn && !req.session.needs2FA) {
@@ -58,7 +56,6 @@ const protect = (req, res, next) => {
 
 // --- PAGE ROUTES ---
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/settings', protect, (req, res) => res.sendFile(path.join(__dirname, 'settings.html')));
 app.get('/2fa-verify', (req, res) => {
@@ -66,8 +63,27 @@ app.get('/2fa-verify', (req, res) => {
     res.sendFile(path.join(__dirname, '2fa-verify.html'));
 });
 
-// --- SETTINGS & SECURITY API ---
+// FIX: Added missing Admin Panel route
+app.get('/admin', protect, async (req, res) => {
+    const user = await User.findOne({ username: req.session.username });
+    const hasAccess = user && ['Owner', 'Management', 'Admin'].includes(user.role);
+    if (hasAccess) {
+        res.sendFile(path.join(__dirname, 'admin.html'));
+    } else {
+        res.status(403).send('Unauthorized access. Admin+ required.');
+    }
+});
 
+app.get('/documents', protect, async (req, res) => {
+    const user = await User.findOne({ username: req.session.username });
+    if (user && user.role !== 'User') {
+        res.sendFile(path.join(__dirname, 'documents.html'));
+    } else {
+        res.status(403).send('Unauthorized. Staff access required.');
+    }
+});
+
+// --- API ROUTES ---
 app.get('/api/me', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     res.json({ 
@@ -77,18 +93,31 @@ app.get('/api/me', protect, async (req, res) => {
     });
 });
 
-app.post('/api/settings/password', protect, async (req, res) => {
-    const { oldPass, newPass } = req.body;
-    const user = await User.findOne({ username: req.session.username });
-    if (user && await bcrypt.compare(oldPass, user.password)) {
-        user.password = await bcrypt.hash(newPass, 10);
-        await user.save();
-        res.send("Password updated successfully.");
-    } else {
-        res.status(400).send("Incorrect current password.");
-    }
+app.get('/api/users', protect, async (req, res) => {
+    const users = await User.find({}, 'username role isBanned');
+    res.json(users);
 });
 
+// Promotion Logic
+app.post('/api/promote-user/:username', protect, async (req, res) => {
+    const currentUser = await User.findOne({ username: req.session.username });
+    const target = await User.findOne({ username: req.params.username });
+    if (!target) return res.status(404).send('User not found');
+
+    if (target.role === 'User' && ['Owner', 'Management', 'Admin'].includes(currentUser.role)) {
+        target.role = 'Staff';
+    } else if (target.role === 'Staff' && ['Owner', 'Management'].includes(currentUser.role)) {
+        target.role = 'Admin';
+    } else if (target.role === 'Admin' && currentUser.role === 'Owner') {
+        target.role = 'Management';
+    } else {
+        return res.status(403).send('Unauthorized promotion.');
+    }
+    await target.save();
+    res.sendStatus(200);
+});
+
+// 2FA & Login Logic
 app.post('/api/settings/2fa/setup', protect, async (req, res) => {
     const secret = authenticator.generateSecret();
     const otpauth = authenticator.keyuri(req.session.username, 'MSRP-Portal', secret);
@@ -102,13 +131,12 @@ app.post('/api/settings/2fa/setup', protect, async (req, res) => {
 app.post('/api/settings/2fa/verify', protect, async (req, res) => {
     const { token } = req.body;
     const user = await User.findOne({ username: req.session.username });
-    const isValid = authenticator.check(token, user.twoFactorSecret);
-    if (isValid) {
+    if (authenticator.check(token, user.twoFactorSecret)) {
         user.twoFactorEnabled = true;
         await user.save();
         res.sendStatus(200);
     } else {
-        res.status(400).send("Invalid token.");
+        res.status(400).send("Invalid code.");
     }
 });
 
@@ -120,21 +148,11 @@ app.post('/api/settings/2fa/disable', protect, async (req, res) => {
     res.send("2FA Disabled.");
 });
 
-app.delete('/api/settings/account', protect, async (req, res) => {
-    await User.findOneAndDelete({ username: req.session.username });
-    req.session.destroy();
-    res.sendStatus(200);
-});
-
-// --- LOGIN & AUTH ---
-
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await User.findOne({ username });
     if (user && await bcrypt.compare(password, user.password)) {
-        if (user.isBanned) return res.status(403).send('Your account is banned.');
         req.session.username = username;
-        req.session.role = user.role;
         if (user.twoFactorEnabled) {
             req.session.needs2FA = true;
             return res.redirect('/2fa-verify');
@@ -149,13 +167,12 @@ app.post('/login', async (req, res) => {
 app.post('/api/login/2fa-verify', async (req, res) => {
     const { token } = req.body;
     const user = await User.findOne({ username: req.session.username });
-    const isValid = authenticator.check(token, user.twoFactorSecret);
-    if (isValid) {
+    if (authenticator.check(token, user.twoFactorSecret)) {
         req.session.isLoggedIn = true;
         delete req.session.needs2FA;
         res.sendStatus(200);
     } else {
-        res.status(400).send("Invalid token");
+        res.status(400).send("Invalid code.");
     }
 });
 
