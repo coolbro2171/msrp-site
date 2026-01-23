@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSRP | Settings</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding: 40px; }
+        .settings-card { background: white; padding: 30px; border-radius: 12px; width: 100%; max-width: 500px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 30px; }
+        .section { margin-bottom: 30px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; }
+        .btn-save { background: #007bff; color: white; }
+        .btn-2fa { background: #28a745; color: white; }
+        .btn-delete { background: #dc3545; color: white; margin-top: 20px; }
+        .qr-container { text-align: center; margin: 20px 0; display: none; }
+        #qr-code img { max-width: 200px; }
+    </style>
+</head>
+<body>
+
+<div class="settings-card">
+    <h1>Account Settings</h1>
+    <a href="/dashboard" style="text-decoration:none; color:#007bff;">&larr; Back to Dashboard</a>
+
+    <div class="section">
+        <h2>Change Password</h2>
+        <input type="password" id="old-pass" placeholder="Current Password">
+        <input type="password" id="new-pass" placeholder="New Password">
+        <button class="btn btn-save" onclick="changePassword()">Update Password</button>
+    </div>
+
+    <div class="section">
+        <h2>Two-Factor Authentication</h2>
+        <p style="font-size:0.9rem; color:#666;">Protect your account with Google Authenticator.</p>
+        <button id="setup-2fa-btn" class="btn btn-2fa" onclick="setup2FA()">Enable 2FA</button>
+        <div id="qr-container" class="qr-container">
+            <p>Scan this QR code with your app:</p>
+            <div id="qr-code"></div>
+            <input type="text" id="2fa-token" placeholder="Enter 6-digit code">
+            <button class="btn btn-save" onclick="verify2FA()">Verify and Save</button>
+        </div>
+    </div>
+
+    <div class="section" style="border-top: 2px solid #fee; padding-top: 20px;">
+        <h2 style="color: #dc3545;">Danger Zone</h2>
+        <button class="btn btn-delete" onclick="deleteAccount()">Permanently Delete Account</button>
+    </div>
+</div>
+
+<script>
+    async function changePassword() {
+        const oldPass = document.getElementById('old-pass').value;
+        const newPass = document.getElementById('new-pass').value;
+        const res = await fetch('/api/settings/password', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({oldPass, newPass})
+        });
+        alert(await res.text());
+    }
+
+    async function setup2FA() {
+        const res = await fetch('/api/settings/2fa/setup', { method: 'POST' });
+        const data = await res.json();
+        document.getElementById('qr-code').innerHTML = `<img src="${data.qrCode}">`;
+        document.getElementById('qr-container').style.display = 'block';
+        document.getElementById('setup-2fa-btn').style.display = 'none';
+    }
+
+    async function verify2FA() {
+        const token = document.getElementById('2fa-token').value;
+        const res = await fetch('/api/settings/2fa/verify', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({token})
+        });
+        if(res.ok) {
+            alert("2FA Enabled Successfully!");
+            location.reload();
+        } else {
+            alert("Invalid Token.");
+        }
+    }
+
+    async function deleteAccount() {
+        if(confirm("Are you absolutely sure? This cannot be undone.")) {
+            const res = await fetch('/api/settings/account', { method: 'DELETE' });
+            if(res.ok) window.location.href = '/';
+        }
+    }
+</script>
+
+</body>
+</html>
