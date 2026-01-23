@@ -17,7 +17,8 @@ mongoose.connect(MONGODB_URI)
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['User', 'Staff', 'Admin', 'Owner'], default: 'User' },
+    // Management rank sits between Admin and Owner
+    role: { type: String, enum: ['User', 'Staff', 'Admin', 'Management', 'Owner'], default: 'User' },
     isBanned: { type: Boolean, default: false }
 });
 const User = mongoose.model('User', userSchema);
@@ -25,8 +26,6 @@ const User = mongoose.model('User', userSchema);
 // --- MIDDLEWARE ---
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-
-// Serving static files (Fixes "Cannot GET" errors for HTML and PDFs)
 app.use(express.static(__dirname)); 
 app.use('/files', express.static(path.join(__dirname, 'files'))); 
 
@@ -51,7 +50,6 @@ app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.h
 
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
-// Documents Route (Accessible by Staff, Admin, and Owner)
 app.get('/documents', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     if (user && user.role !== 'User') {
@@ -63,7 +61,8 @@ app.get('/documents', protect, async (req, res) => {
 
 app.get('/admin', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
-    if (user && (user.role === 'Admin' || user.role === 'Owner')) {
+    const hasAccess = user && ['Owner', 'Management', 'Admin'].includes(user.role);
+    if (hasAccess) {
         res.sendFile(path.join(__dirname, 'admin.html'));
     } else {
         res.status(403).send('Unauthorized access.');
@@ -77,43 +76,47 @@ app.get('/logout', (req, res) => {
 
 // --- MANAGEMENT API ---
 
-// Promotion Logic: Admins promote User -> Staff. Owners promote Staff -> Admin.
+// Promotion Logic
 app.post('/api/promote-user/:username', protect, async (req, res) => {
     try {
         const currentUser = await User.findOne({ username: req.session.username });
         const target = await User.findOne({ username: req.params.username });
-
         if (!target) return res.status(404).send('User not found');
 
-        if (target.role === 'User' && (currentUser.role === 'Owner' || currentUser.role === 'Admin')) {
-            await User.findOneAndUpdate({ username: req.params.username }, { role: 'Staff' });
-            res.sendStatus(200);
-        } else if (target.role === 'Staff' && currentUser.role === 'Owner') {
-            await User.findOneAndUpdate({ username: req.params.username }, { role: 'Admin' });
-            res.sendStatus(200);
+        // Admin+ can make Staff | Management+ can make Admin | Owner can make Management
+        if (target.role === 'User' && (['Owner', 'Management', 'Admin'].includes(currentUser.role))) {
+            target.role = 'Staff';
+        } else if (target.role === 'Staff' && (['Owner', 'Management'].includes(currentUser.role))) {
+            target.role = 'Admin';
+        } else if (target.role === 'Admin' && currentUser.role === 'Owner') {
+            target.role = 'Management';
         } else {
-            res.status(403).send('Unauthorized promotion.');
+            return res.status(403).send('Unauthorized promotion.');
         }
+        await target.save();
+        res.sendStatus(200);
     } catch (err) { res.status(500).send('Error'); }
 });
 
-// Demotion Logic: Admins demote Staff -> User. Owners demote Admin -> Staff.
+// Demotion Logic
 app.post('/api/demote-user/:username', protect, async (req, res) => {
     try {
         const currentUser = await User.findOne({ username: req.session.username });
         const target = await User.findOne({ username: req.params.username });
-
         if (!target) return res.status(404).send('User not found');
 
-        if (target.role === 'Staff' && (currentUser.role === 'Owner' || currentUser.role === 'Admin')) {
-            await User.findOneAndUpdate({ username: req.params.username }, { role: 'User' });
-            res.sendStatus(200);
-        } else if (target.role === 'Admin' && currentUser.role === 'Owner') {
-            await User.findOneAndUpdate({ username: req.params.username }, { role: 'Staff' });
-            res.sendStatus(200);
+        // Admin+ can demote Staff | Management+ can demote Admin | Owner can demote Management
+        if (target.role === 'Staff' && (['Owner', 'Management', 'Admin'].includes(currentUser.role))) {
+            target.role = 'User';
+        } else if (target.role === 'Admin' && (['Owner', 'Management'].includes(currentUser.role))) {
+            target.role = 'Staff';
+        } else if (target.role === 'Management' && currentUser.role === 'Owner') {
+            target.role = 'Admin';
         } else {
-            res.status(403).send('Unauthorized demotion.');
+            return res.status(403).send('Unauthorized demotion.');
         }
+        await target.save();
+        res.sendStatus(200);
     } catch (err) { res.status(500).send('Error'); }
 });
 
@@ -124,6 +127,7 @@ app.post('/api/ban-user/:username', protect, async (req, res) => {
         if (!target || target.role === 'Owner') return res.sendStatus(403);
 
         const canBan = currentUser.role === 'Owner' || 
+                      currentUser.role === 'Management' ||
                       (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
 
         if (canBan) {
@@ -140,7 +144,11 @@ app.delete('/api/delete-user/:username', protect, async (req, res) => {
         const target = await User.findOne({ username: req.params.username });
         if (!target || target.role === 'Owner') return res.sendStatus(403);
 
-        if (currentUser.role === 'Owner' || (currentUser.role === 'Admin' && target.role !== 'Admin')) {
+        const canDelete = currentUser.role === 'Owner' || 
+                          currentUser.role === 'Management' ||
+                          (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
+
+        if (canDelete) {
             await User.findOneAndDelete({ username: req.params.username });
             res.sendStatus(200);
         } else { res.sendStatus(403); }
@@ -171,7 +179,7 @@ app.post('/login', async (req, res) => {
         req.session.username = username;
         req.session.role = user.role;
         
-        if (user.role === 'Admin' || user.role === 'Owner') {
+        if (['Owner', 'Management', 'Admin'].includes(user.role)) {
             res.redirect('/admin');
         } else {
             res.redirect('/dashboard');
