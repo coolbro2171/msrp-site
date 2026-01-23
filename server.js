@@ -76,7 +76,7 @@ app.get('/admin', protect, async (req, res) => {
     }
 });
 
-// --- API ROUTES (Staff Management) ---
+// --- API ROUTES (Staff Management & Ranking) ---
 
 app.get('/api/me', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
@@ -87,12 +87,20 @@ app.get('/api/me', protect, async (req, res) => {
     });
 });
 
+// GET USERS WITH RANK SORTING
 app.get('/api/users', protect, async (req, res) => {
-    const users = await User.find({}, 'username role isBanned');
-    res.json(users);
+    try {
+        const users = await User.find({}, 'username role isBanned');
+        const rankOrder = { 'Owner': 1, 'Management': 2, 'Admin': 3, 'Staff': 4, 'User': 5 };
+        
+        users.sort((a, b) => (rankOrder[a.role] || 99) - (rankOrder[b.role] || 99));
+        res.json(users);
+    } catch (err) {
+        res.status(500).send('Error sorting users');
+    }
 });
 
-// FIXED BAN/UNBAN ROUTE
+// BAN/UNBAN ROUTE
 app.post('/api/ban-user/:username', protect, async (req, res) => {
     const currentUser = await User.findOne({ username: req.session.username });
     if (!['Owner', 'Management', 'Admin'].includes(currentUser.role)) return res.sendStatus(403);
@@ -106,7 +114,7 @@ app.post('/api/ban-user/:username', protect, async (req, res) => {
     res.sendStatus(200);
 });
 
-// FIXED DELETE USER ROUTE
+// DELETE USER ROUTE
 app.delete('/api/delete-user/:username', protect, async (req, res) => {
     const currentUser = await User.findOne({ username: req.session.username });
     if (!['Owner', 'Management'].includes(currentUser.role)) return res.sendStatus(403);
@@ -119,6 +127,7 @@ app.delete('/api/delete-user/:username', protect, async (req, res) => {
     else res.status(404).send('User not found');
 });
 
+// ROLE PROMOTION/DEMOTION ROUTE
 app.post('/api/promote-user/:username', protect, async (req, res) => {
     const currentUser = await User.findOne({ username: req.session.username });
     const target = await User.findOne({ username: req.params.username });
@@ -186,7 +195,6 @@ app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await User.findOne({ username });
     
-    // Safety check for Banned Users
     if (user && user.isBanned) {
         return res.status(403).send('This account is currently banned.');
     }
