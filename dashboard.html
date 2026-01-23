@@ -68,6 +68,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .nav-links a {
@@ -76,6 +78,7 @@
             transition: 0.2s;
         }
 
+        .btn-docs { color: #007bff; }
         .btn-admin { color: #28a745; }
         .btn-logout { color: #dc3545; }
         
@@ -113,7 +116,7 @@
                         <span class="pending-status">Pending Access</span>
                         <h1>Welcome, ${user.username}</h1>
                         <p>Your account is successfully registered, but you do not have permission to view site content yet.</p>
-                        <p><strong>Next Step:</strong> Please wait for an Admin or the Owner to promote you to <strong>Staff</strong>.</p>
+                        <p>Please wait for an Admin or the Owner to promote you to <strong>Staff</strong>.</p>
                         <div class="nav-links" style="justify-content: center;">
                             <a href="/logout" class="btn-logout">Logout</a>
                         </div>
@@ -127,16 +130,23 @@
                     'Owner': '#dc3545'
                 };
 
+                // Build action links based on role
+                let actionLinks = `<a href="/documents" class="btn-docs">Documents</a>`;
+                
+                if (user.role === 'Admin' || user.role === 'Owner') {
+                    actionLinks += `<a href="/admin" class="btn-admin">Management Panel</a>`;
+                }
+
                 content.innerHTML = `
                     <div class="active-box">
                         <span class="role-indicator" style="background-color: ${roleColors[user.role]}">${user.role}</span>
                         <h1>Hello, ${user.username}</h1>
-                        <p>Welcome to the MSRP Internal Dashboard. You now have access to staff tools and site resources.</p>
+                        <p>Welcome to the MSRP Internal Dashboard. Use the links below to access site resources and tools.</p>
                         
                         <div class="nav-links">
-                            ${(user.role === 'Admin' || user.role === 'Owner') ? 
-                                `<a href="/admin" class="btn-admin">Management Panel</a>` : 
-                                `<span><em>Staff Access Active</em></span>`}
+                            <div style="display:flex; gap:15px;">
+                                ${actionLinks}
+                            </div>
                             <a href="/logout" class="btn-logout">Logout</a>
                         </div>
                     </div>
