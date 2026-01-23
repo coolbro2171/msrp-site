@@ -15,7 +15,7 @@
             overflow: hidden;
         }
 
-        /* Restored background logic to match previous look */
+        /* Background image with blur and scaling to prevent white edges */
         .bg-blur {
             position: fixed;
             top: 0;
@@ -27,10 +27,10 @@
             background-size: cover;
             background-position: center;
             filter: blur(10px);
-            transform: scale(1.1); /* Prevents white edges from blur */
+            transform: scale(1.1);
         }
 
-        /* Dark overlay to make the white box pop */
+        /* Subtle dark overlay for readability */
         .overlay {
             position: fixed;
             top: 0;
@@ -66,12 +66,16 @@
             margin-bottom: 30px;
         }
 
-        .btn-docs {
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn {
             display: block;
             width: 100%;
             padding: 16px;
-            background-color: #007bff;
-            color: white;
             text-decoration: none;
             border-radius: 10px;
             font-weight: bold;
@@ -80,11 +84,27 @@
             transition: background 0.2s, transform 0.1s;
         }
 
+        .btn-docs {
+            background-color: #007bff;
+            color: white;
+        }
+
         .btn-docs:hover {
             background-color: #0069d9;
         }
 
-        .btn-docs:active {
+        /* Admin button is hidden by default */
+        .btn-admin {
+            background-color: #343a40;
+            color: white;
+            display: none;
+        }
+
+        .btn-admin:hover {
+            background-color: #23272b;
+        }
+
+        .btn:active {
             transform: scale(0.98);
         }
 
@@ -110,10 +130,13 @@
 <div class="overlay"></div>
 
 <div class="dashboard-container">
-    <h1 id="welcome-text">Welcome, User</h1>
+    <h1 id="welcome-text">Welcome back</h1>
     <p>Access the MSRP internal resources below.</p>
     
-    <a href="/documents" class="btn-docs">View Internal Documents</a>
+    <div class="btn-group">
+        <a href="/documents" class="btn btn-docs">View Internal Documents</a>
+        <a href="/admin" id="admin-btn" class="btn btn-admin">Admin Panel</a>
+    </div>
     
     <a href="/logout" class="logout-link">Logout</a>
 </div>
@@ -124,13 +147,20 @@
             const res = await fetch('/api/me');
             if (res.ok) {
                 const data = await res.json();
+                
+                // Set personalized welcome message
                 document.getElementById('welcome-text').innerText = `Welcome, ${data.username}`;
+                
+                // Show Admin Panel button if user is Admin or Owner
+                if (data.role === 'Admin' || data.role === 'Owner') {
+                    document.getElementById('admin-btn').style.display = 'block';
+                }
             } else {
-                // If not logged in, send back to login page
+                // Redirect to login if session is invalid
                 window.location.href = '/';
             }
         } catch (err) {
-            console.error("Failed to load user info", err);
+            console.error("Failed to load user info:", err);
         }
     }
     initDashboard();
