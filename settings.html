@@ -15,7 +15,6 @@
             overflow-x: hidden;
         }
 
-        /* Same background as dashboard */
         .bg-blur {
             position: fixed;
             top: 0;
@@ -51,12 +50,13 @@
             z-index: 1;
             max-height: 90vh;
             overflow-y: auto;
+            text-align: center;
         }
 
         h1 { font-size: 2rem; margin-bottom: 20px; color: #222; }
-        h2 { border-bottom: 2px solid #eee; padding-bottom: 8px; margin-top: 25px; font-size: 1.3rem; }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 8px; margin-top: 25px; font-size: 1.3rem; text-align: left; }
         
-        .section { margin-bottom: 25px; text-align: left; }
+        .section { margin-bottom: 25px; }
         
         input { 
             width: 100%; 
@@ -82,19 +82,27 @@
         .btn-save { background: #007bff; color: white; }
         .btn-2fa { background: #28a745; color: white; }
         .btn-delete { background: #dc3545; color: white; margin-top: 15px; }
-        .btn:active { transform: scale(0.98); }
+        
+        .status-active { 
+            background: #e7f3ef; 
+            color: #28a745; 
+            padding: 12px; 
+            border-radius: 10px; 
+            font-weight: bold;
+            display: none;
+        }
 
         .qr-container { text-align: center; margin: 20px 0; display: none; }
         #qr-code img { max-width: 180px; border: 5px solid white; border-radius: 10px; }
 
         .back-link {
-            display: inline-block;
+            display: block;
+            text-align: left;
             margin-bottom: 15px;
             color: #007bff;
             text-decoration: none;
             font-weight: 600;
         }
-        .back-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -115,9 +123,12 @@
 
     <div class="section">
         <h2>Two-Factor Authentication</h2>
-        <p style="font-size:0.9rem; color:#666;">Secure your account with a mobile authenticator app.</p>
+        <p id="2fa-desc" style="font-size:0.9rem; color:#666;">Secure your account with a mobile authenticator app.</p>
+        
         <button id="setup-2fa-btn" class="btn btn-2fa" onclick="setup2FA()">Enable 2FA</button>
         
+        <div id="2fa-active-msg" class="status-active">✓ 2FA is currently enabled</div>
+
         <div id="qr-container" class="qr-container">
             <p style="font-size:0.85rem; margin-bottom:10px;">Scan this QR code with Google Authenticator:</p>
             <div id="qr-code"></div>
@@ -133,11 +144,24 @@
 </div>
 
 <script>
+    // NEW: Check 2FA status on page load
+    async function checkStatus() {
+        const res = await fetch('/api/me');
+        if (res.ok) {
+            const data = await res.json();
+            if (data.twoFactorEnabled) {
+                document.getElementById('setup-2fa-btn').style.display = 'none';
+                document.getElementById('2fa-active-msg').style.display = 'block';
+                document.getElementById('2fa-desc').innerText = "Your account is protected by 2FA.";
+            }
+        }
+    }
+    checkStatus();
+
     async function changePassword() {
         const oldPass = document.getElementById('old-pass').value;
         const newPass = document.getElementById('new-pass').value;
         if (!oldPass || !newPass) return alert("Please fill in both fields.");
-        
         const res = await fetch('/api/settings/password', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -170,7 +194,7 @@
     }
 
     async function deleteAccount() {
-        if(confirm("Are you absolutely sure? This will permanently delete your MSRP account data.")) {
+        if(confirm("Are you absolutely sure?")) {
             const res = await fetch('/api/settings/account', { method: 'DELETE' });
             if(res.ok) window.location.href = '/';
         }
