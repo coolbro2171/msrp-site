@@ -9,150 +9,165 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f4f7f6;
             margin: 0;
-            padding: 40px;
+            padding: 20px;
+            height: 100vh;
             display: flex;
-            justify-content: center;
-        }
-
-        .docs-container {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 900px;
+            flex-direction: column;
+            box-sizing: border-box;
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 2px solid #eee;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
+            background: white;
+            padding: 15px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
         }
 
-        h1 { color: #333; margin: 0; font-size: 1.8rem; }
+        h1 { color: #333; margin: 0; font-size: 1.5rem; }
 
-        .nav-link {
-            text-decoration: none;
-            color: #007bff;
-            font-weight: bold;
-            font-size: 0.9rem;
+        .main-layout {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            flex-grow: 1;
+            overflow: hidden;
         }
 
-        .doc-section {
-            margin-bottom: 30px;
+        /* Sidebar Styling */
+        .sidebar {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow-y: auto;
         }
 
         .doc-section h2 {
-            font-size: 1.2rem;
-            color: #666;
+            font-size: 0.9rem;
+            color: #999;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 15px;
-        }
-
-        .doc-list {
-            display: grid;
-            gap: 15px;
+            margin: 20px 0 10px 0;
         }
 
         .doc-item {
             background: #f8f9fa;
             border: 1px solid #e9ecef;
-            padding: 15px 20px;
+            padding: 12px;
             border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            margin-bottom: 10px;
+            cursor: pointer;
             transition: 0.2s;
+            display: block;
+            text-align: left;
+            width: 100%;
+            border: none;
+            font-family: inherit;
         }
 
         .doc-item:hover {
-            border-color: #007bff;
-            background-color: #fff;
-        }
-
-        .doc-info {
-            display: flex;
-            flex-direction: column;
+            background-color: #eef2ff;
+            border-left: 4px solid #007bff;
         }
 
         .doc-name {
+            display: block;
             font-weight: bold;
             color: #333;
+            font-size: 0.95rem;
         }
 
         .doc-meta {
-            font-size: 0.8rem;
-            color: #999;
-            margin-top: 4px;
+            font-size: 0.75rem;
+            color: #777;
         }
 
-        .btn-view {
-            background-color: #007bff;
+        /* Viewer Styling */
+        .viewer-container {
+            background: #333; /* Dark background like a PDF viewer */
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        #doc-viewer {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .no-doc-selected {
             color: white;
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+            padding: 40px;
         }
 
-        .btn-view:hover {
-            background-color: #0056b3;
-        }
+        .nav-link { text-decoration: none; color: #007bff; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="docs-container">
-    <div class="header">
-        <h1>Internal Documents</h1>
-        <a href="/dashboard" class="nav-link">← Return to Dashboard</a>
-    </div>
+<div class="header">
+    <h1>Internal Repository</h1>
+    <a href="/dashboard" class="nav-link">← Return to Dashboard</a>
+</div>
 
-    <div class="doc-section">
-        <h2>General Resources</h2>
-        <div class="doc-list">
-            <div class="doc-item">
-                <div class="doc-info">
-                    <span class="doc-name">MSRP Community Guidelines</span>
-                    <span class="doc-meta">Updated: Jan 2026 • PDF</span>
-                </div>
-                <a href="#" class="btn-view">View Document</a>
-            </div>
-            <div class="doc-item">
-                <div class="doc-info">
-                    <span class="doc-name">Server Rules & Regulations</span>
-                    <span class="doc-meta">Updated: Dec 2025 • PDF</span>
-                </div>
-                <a href="#" class="btn-view">View Document</a>
-            </div>
+<div class="main-layout">
+    <div class="sidebar">
+        <div class="doc-section">
+            <h2>Community</h2>
+            <button class="doc-item" onclick="viewDoc('/files/rules.pdf')">
+                <span class="doc-name">Community Rules</span>
+                <span class="doc-meta">PDF Document</span>
+            </button>
+            <button class="doc-item" onclick="viewDoc('https://en.wikipedia.org/wiki/Main_Page')">
+                <span class="doc-name">Terms of Service</span>
+                <span class="doc-meta">Web View</span>
+            </button>
+        </div>
+
+        <div class="doc-section">
+            <h2>Staff Only</h2>
+            <button class="doc-item" onclick="viewDoc('/files/guide.pdf')">
+                <span class="doc-name">Staff Handbook</span>
+                <span class="doc-meta">PDF Document</span>
+            </button>
         </div>
     </div>
 
-    <div class="doc-section">
-        <h2>Staff Resources</h2>
-        <div class="doc-list">
-            <div class="doc-item">
-                <div class="doc-info">
-                    <span class="doc-name">Staff Code of Conduct</span>
-                    <span class="doc-meta">Official Policy • Web Page</span>
-                </div>
-                <a href="#" class="btn-view">View Document</a>
-            </div>
-            <div class="doc-item">
-                <div class="doc-info">
-                    <span class="doc-name">Moderation Handbook</span>
-                    <span class="doc-meta">Admin Approved • PDF</span>
-                </div>
-                <a href="#" class="btn-view">View Document</a>
+    <div class="viewer-container" id="viewer-container">
+        <div class="no-doc-selected" id="placeholder">
+            <div>
+                <p>Select a document from the sidebar to view it here.</p>
             </div>
         </div>
+        <iframe id="doc-viewer" style="display: none;"></iframe>
     </div>
 </div>
+
+<script>
+    function viewDoc(url) {
+        const viewer = document.getElementById('doc-viewer');
+        const placeholder = document.getElementById('placeholder');
+        
+        // Hide placeholder, show iframe
+        placeholder.style.display = 'none';
+        viewer.style.display = 'block';
+        
+        // Set the source of the iframe
+        viewer.src = url;
+    }
+</script>
 
 </body>
 </html>
