@@ -3,164 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Dashboard</title>
+    <title>MSRP | Dashboard</title>
     <style>
-        body {
+        body, html {
+            height: 100%;
+            margin: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
+            overflow: hidden;
+        }
+
+        .bg-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background-color: #1a1a1a; 
+            background-image: url('https://mwskpndfresmcrvjyodr.supabase.co/storage/v1/object/public/user_uploads/6791986427d11f0037a3c333/145a3059-e91b-426b-9516-7d19c3666d99');
+            background-size: cover;
+            background-position: center;
+            filter: blur(12px);
+            transform: scale(1.1);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.4);
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            z-index: 1;
         }
 
-        .dashboard-container {
-            background: white;
+        .dashboard-card {
+            background: rgba(255, 255, 255, 0.95);
             padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            text-align: center;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
             width: 100%;
-            max-width: 550px;
+            max-width: 450px;
+            text-align: center;
+            position: relative;
         }
 
         h1 { color: #333; margin-bottom: 10px; }
-        p { color: #666; line-height: 1.6; }
+        p { color: #666; margin-bottom: 30px; }
 
-        /* Pending Access Styling */
-        .pending-box {
-            border: 2px dashed #fd7e14;
-            padding: 30px;
-            border-radius: 8px;
-            background-color: #fffaf0;
-        }
-
-        .pending-status {
-            color: #fd7e14;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 1.5rem;
-            margin-bottom: 15px;
+        .btn-docs {
             display: block;
-        }
-
-        /* Active Dashboard Styling */
-        .active-box {
-            text-align: left;
-        }
-
-        .role-indicator {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
+            padding: 15px;
+            background: #007bff;
             color: white;
-            font-weight: bold;
-            font-size: 0.8rem;
-            margin-bottom: 20px;
-        }
-
-        .nav-links {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .nav-links a {
             text-decoration: none;
+            border-radius: 8px;
             font-weight: bold;
-            transition: 0.2s;
+            transition: 0.3s;
+            margin-bottom: 15px;
         }
 
-        .btn-docs { color: #007bff; }
-        .btn-admin { color: #28a745; }
-        .btn-logout { color: #dc3545; }
-        
-        .nav-links a:hover { opacity: 0.7; }
+        .btn-docs:hover { background: #0056b3; }
+
+        .btn-logout {
+            color: #dc3545;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
-
-<div class="dashboard-container">
-    <div id="loader">
-        <h1>Verifying Session...</h1>
+    <div class="bg-container"></div>
+    <div class="overlay">
+        <div class="dashboard-card">
+            <h1 id="welcome-text">Welcome back</h1>
+            <p>Access the MSRP internal resources below.</p>
+            <a href="/documents" class="btn-docs">View Internal Documents</a>
+            <a href="/logout" class="btn-logout">Logout</a>
+        </div>
     </div>
 
-    <div id="dashboard-content" style="display: none;">
-        </div>
-</div>
-
-<script>
-    async function initDashboard() {
-        try {
+    <script>
+        async function getMe() {
             const res = await fetch('/api/me');
-            if (!res.ok) throw new Error('Not logged in');
-            
-            const user = await res.json();
-            const content = document.getElementById('dashboard-content');
-            const loader = document.getElementById('loader');
-
-            loader.style.display = 'none';
-            content.style.display = 'block';
-
-            if (user.role === 'User') {
-                // VIEW FOR UNPROMOTED USERS
-                content.innerHTML = `
-                    <div class="pending-box">
-                        <span class="pending-status">Pending Access</span>
-                        <h1>Welcome, ${user.username}!</h1>
-                        <p>Your account is successfully registered, but you do not have permission to view site content yet.</p>
-                        <p>Please wait for an Admin or the Owner to promote you to <strong>Staff</strong>.</p>
-                        <div class="nav-links" style="justify-content: center;">
-                            <a href="/logout" class="btn-logout">Logout</a>
-                        </div>
-                    </div>
-                `;
-            } else {
-                // VIEW FOR STAFF, ADMINS, AND OWNER
-                const roleColors = {
-                    'Staff': '#007bff',
-                    'Admin': '#28a745',
-                    'Owner': '#dc3545'
-                };
-
-                // Build action links based on role
-                let actionLinks = `<a href="/documents" class="btn-docs">Documents</a>`;
-                
-                if (user.role === 'Admin' || user.role === 'Owner') {
-                    actionLinks += `<a href="/admin" class="btn-admin">Management Panel</a>`;
-                }
-
-                content.innerHTML = `
-                    <div class="active-box">
-                        <span class="role-indicator" style="background-color: ${roleColors[user.role]}">${user.role}</span>
-                        <h1>Hello, ${user.username}!</h1>
-                        <p>Welcome to the MSRP Internal Dashboard. Use the links below to access site resources and tools.</p>
-                        
-                        <div class="nav-links">
-                            <div style="display:flex; gap:15px;">
-                                ${actionLinks}
-                            </div>
-                            <a href="/logout" class="btn-logout">Logout</a>
-                        </div>
-                    </div>
-                `;
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('welcome-text').innerText = `Welcome, ${data.username}`;
             }
-        } catch (err) {
-            window.location.href = '/';
         }
-    }
-
-    initDashboard();
-</script>
-
+        getMe();
+    </script>
 </body>
 </html>
-
-
