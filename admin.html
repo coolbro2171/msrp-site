@@ -12,9 +12,13 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
+        /* Fixed blurred background using your Discord screenshot */
         .bg-fixed {
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             z-index: -1;
             background-image: url('https://cdn.discordapp.com/attachments/1423737735159484537/1462698389459439687/Screenshot_2026-01-19_at_1.40.06_AM.png?ex=6973c0c7&is=69726f47&hm=c6190bbb0efec04d0d16cf86db54ce4a5822e8f0936a68f9f8d8f66f1076b030&');
             background-size: cover;
@@ -51,19 +55,23 @@
         th { text-align: left; padding: 12px; border-bottom: 2px solid #dee2e6; color: #444; }
         td { padding: 12px; border-bottom: 1px solid #eee; }
 
+        /* Role Badges */
         .badge {
-            padding: 4px 8px;
+            padding: 5px 10px;
             border-radius: 4px;
             font-size: 0.75rem;
             font-weight: bold;
             color: white;
+            text-transform: uppercase;
         }
         .badge-owner { background: #dc3545; }
+        .badge-management { background: #6f42c1; } /* New Management Purple */
         .badge-admin { background: #28a745; }
         .badge-staff { background: #007bff; }
         .badge-user { background: #6c757d; }
-        .badge-banned { background: #000; }
+        .badge-banned { background: #000000; }
 
+        /* Buttons */
         .btn {
             padding: 6px 12px;
             border: none;
@@ -78,7 +86,14 @@
         .btn-demote { background: #fd7e14; color: white; }
         .btn-ban { background: #343a40; color: white; }
         .btn-delete { background: #dc3545; color: white; }
-        .btn-nav { background: #007bff; color: white; text-decoration: none; padding: 10px 15px; }
+        .btn-nav { 
+            background: #007bff; 
+            color: white; 
+            text-decoration: none; 
+            padding: 10px 15px; 
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
 
         .btn:hover { opacity: 0.8; }
     </style>
@@ -91,20 +106,20 @@
     <div class="container">
         <header>
             <div>
-                <h1 style="margin:0;">Management Portal</h1>
-                <span id="my-info" style="font-size: 0.8rem; color: #666;"></span>
+                <h1 style="margin:0;">User Management</h1>
+                <span id="my-info" style="font-size: 0.85rem; color: #666;">Identifying session...</span>
             </div>
             <nav>
-                <a href="/dashboard" class="btn-nav" style="border-radius: 6px;">Dashboard</a>
-                <a href="/logout" class="btn-nav" style="background:#6c757d; border-radius: 6px;">Logout</a>
+                <a href="/dashboard" class="btn-nav">Dashboard</a>
+                <a href="/logout" class="btn-nav" style="background:#6c757d;">Logout</a>
             </nav>
         </header>
 
         <table>
             <thead>
                 <tr>
-                    <th>User</th>
-                    <th>Role</th>
+                    <th>Username</th>
+                    <th>Current Role</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
@@ -121,6 +136,10 @@
 
     async function init() {
         const res = await fetch('/api/me');
+        if (!res.ok) {
+            window.location.href = '/';
+            return;
+        }
         const data = await res.json();
         myRole = data.role;
         myName = data.username;
@@ -135,31 +154,46 @@
         tbody.innerHTML = '';
 
         users.forEach(user => {
+            // Don't show yourself in the management list
             if (user.username === myName) return;
 
             const row = document.createElement('tr');
             const roleClass = `badge-${user.role.toLowerCase()}`;
-            const statusLabel = user.isBanned ? '<span class="badge badge-banned">Banned</span>' : '<span class="badge" style="background:#e1f6e5; color:#28a745;">Active</span>';
+            const statusLabel = user.isBanned 
+                ? '<span class="badge badge-banned">Banned</span>' 
+                : '<span class="badge" style="background:#e1f6e5; color:#28a745;">Active</span>';
 
             let actionsHtml = '';
             
-            // Promotion
-            if (user.role === 'User' && (myRole === 'Admin' || myRole === 'Owner')) {
+            // --- PROMOTION LOGIC ---
+            // Admin+ can promote User to Staff
+            if (user.role === 'User' && (['Owner', 'Management', 'Admin'].includes(myRole))) {
                 actionsHtml += `<button class="btn btn-promote" onclick="manage('promote', '${user.username}')">Promote to Staff</button>`;
-            } else if (user.role === 'Staff' && myRole === 'Owner') {
+            } 
+            // Management+ can promote Staff to Admin
+            else if (user.role === 'Staff' && (['Owner', 'Management'].includes(myRole))) {
                 actionsHtml += `<button class="btn btn-promote" onclick="manage('promote', '${user.username}')">Promote to Admin</button>`;
+            } 
+            // Only Owner can promote Admin to Management
+            else if (user.role === 'Admin' && myRole === 'Owner') {
+                actionsHtml += `<button class="btn btn-promote" onclick="manage('promote', '${user.username}')">Promote to Management</button>`;
             }
 
-            // Demotion
-            if (user.role === 'Staff' && (myRole === 'Admin' || myRole === 'Owner')) {
+            // --- DEMOTION LOGIC ---
+            if (user.role === 'Staff' && (['Owner', 'Management', 'Admin'].includes(myRole))) {
                 actionsHtml += `<button class="btn btn-demote" onclick="manage('demote', '${user.username}')">Demote to Member</button>`;
-            } else if (user.role === 'Admin' && myRole === 'Owner') {
+            } else if (user.role === 'Admin' && (['Owner', 'Management'].includes(myRole))) {
                 actionsHtml += `<button class="btn btn-demote" onclick="manage('demote', '${user.username}')">Demote to Staff</button>`;
+            } else if (user.role === 'Management' && myRole === 'Owner') {
+                actionsHtml += `<button class="btn btn-demote" onclick="manage('demote', '${user.username}')">Demote to Admin</button>`;
             }
 
-            // Ban/Delete
-            const canManage = myRole === 'Owner' || (myRole === 'Admin' && (user.role === 'User' || user.role === 'Staff'));
-            if (canManage && user.role !== 'Owner') {
+            // --- BAN & DELETE LOGIC ---
+            const isTargetHigher = (user.role === 'Owner') || (user.role === 'Management' && myRole !== 'Owner');
+            const canModerate = (myRole === 'Owner' || myRole === 'Management') || 
+                                (myRole === 'Admin' && (user.role === 'User' || user.role === 'Staff'));
+
+            if (canModerate && !isTargetHigher) {
                 actionsHtml += `<button class="btn btn-ban" onclick="manage('ban', '${user.username}')">${user.isBanned ? 'Unban' : 'Ban'}</button>`;
                 actionsHtml += `<button class="btn btn-delete" onclick="manage('delete', '${user.username}')">Delete</button>`;
             }
@@ -175,10 +209,17 @@
     }
 
     async function manage(action, username) {
+        if (action === 'delete' && !confirm(`Are you sure you want to delete ${username}?`)) return;
+        
         const method = action === 'delete' ? 'DELETE' : 'POST';
         const res = await fetch(`/api/${action}-user/${username}`, { method });
-        if (res.ok) fetchUsers();
-        else alert("Action failed.");
+        
+        if (res.ok) {
+            fetchUsers();
+        } else {
+            const errorText = await res.text();
+            alert("Error: " + errorText);
+        }
     }
 
     init();
