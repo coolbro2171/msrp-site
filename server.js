@@ -42,13 +42,16 @@ const protect = (req, res, next) => {
 
 // --- PAGE ROUTES ---
 
+// Main Login Page
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
+// Fix for "Cannot GET /register"
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
 
+// Dashboard (Pending screen for Users, Documents link for Staff+)
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
-// Documents Route (Staff+)
+// Fix for "Not Found /documents"
 app.get('/documents', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     if (user && user.role !== 'User') {
@@ -58,7 +61,7 @@ app.get('/documents', protect, async (req, res) => {
     }
 });
 
-// Admin Route (Admin/Owner Only)
+// Admin Panel (Admin/Owner Only)
 app.get('/admin', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     if (user && (user.role === 'Admin' || user.role === 'Owner')) {
@@ -68,14 +71,15 @@ app.get('/admin', protect, async (req, res) => {
     }
 });
 
+// Logout Fix
 app.get('/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/');
 });
 
-// --- MANAGEMENT API ---
+// --- MANAGEMENT API (PROMOTION PIPELINE) ---
 
-// Promotion Pipeline: User -> Staff -> Admin
+// Path: User -> Staff -> Admin
 app.post('/api/promote-user/:username', protect, async (req, res) => {
     try {
         const currentUser = await User.findOne({ username: req.session.username });
@@ -83,22 +87,19 @@ app.post('/api/promote-user/:username', protect, async (req, res) => {
 
         if (!target) return res.status(404).send('User not found');
 
-        if (target.role === 'User') {
-            if (currentUser.role === 'Owner' || currentUser.role === 'Admin') {
-                await User.findOneAndUpdate({ username: req.params.username }, { role: 'Staff' });
-                return res.sendStatus(200);
-            }
+        // Step 1: User to Staff (Admins and Owners can do this)
+        if (target.role === 'User' && (currentUser.role === 'Owner' || currentUser.role === 'Admin')) {
+            await User.findOneAndUpdate({ username: req.params.username }, { role: 'Staff' });
+            res.sendStatus(200);
         } 
-        else if (target.role === 'Staff') {
-            if (currentUser.role === 'Owner') {
-                await User.findOneAndUpdate({ username: req.params.username }, { role: 'Admin' });
-                return res.sendStatus(200);
-            }
+        // Step 2: Staff to Admin (Only the Owner can do this)
+        else if (target.role === 'Staff' && currentUser.role === 'Owner') {
+            await User.findOneAndUpdate({ username: req.params.username }, { role: 'Admin' });
+            res.sendStatus(200);
+        } else {
+            res.status(403).send('Invalid promotion path.');
         }
-        res.status(403).send('Invalid promotion path.');
-    } catch (err) {
-        res.status(500).send('Error during promotion.');
-    }
+    } catch (err) { res.status(500).send('Error'); }
 });
 
 app.post('/api/demote-user/:username', protect, async (req, res) => {
@@ -108,17 +109,14 @@ app.post('/api/demote-user/:username', protect, async (req, res) => {
         const newRole = target.role === 'Admin' ? 'Staff' : 'User';
         await User.findOneAndUpdate({ username: req.params.username }, { role: newRole });
         res.sendStatus(200);
-    } catch (err) {
-        res.status(500).send('Error during demotion.');
-    }
+    } catch (err) { res.status(500).send('Error'); }
 });
 
 app.post('/api/ban-user/:username', protect, async (req, res) => {
     try {
         const currentUser = await User.findOne({ username: req.session.username });
         const target = await User.findOne({ username: req.params.username });
-
-        if (target.role === 'Owner') return res.sendStatus(403);
+        if (!target || target.role === 'Owner') return res.sendStatus(403);
 
         const canBan = currentUser.role === 'Owner' || 
                       (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
@@ -127,28 +125,8 @@ app.post('/api/ban-user/:username', protect, async (req, res) => {
             target.isBanned = !target.isBanned;
             await target.save();
             res.sendStatus(200);
-        } else {
-            res.sendStatus(403);
-        }
-    } catch (err) {
-        res.status(500).send('Error toggling ban.');
-    }
-});
-
-app.delete('/api/delete-user/:username', protect, async (req, res) => {
-    const currentUser = await User.findOne({ username: req.session.username });
-    const target = await User.findOne({ username: req.params.username });
-    if (!target || target.role === 'Owner') return res.sendStatus(403);
-
-    const canDelete = currentUser.role === 'Owner' || 
-                     (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
-
-    if (canDelete) {
-        await User.findOneAndDelete({ username: req.params.username });
-        res.sendStatus(200);
-    } else {
-        res.sendStatus(403);
-    }
+        } else { res.sendStatus(403); }
+    } catch (err) { res.status(500).send('Error'); }
 });
 
 // --- AUTHENTICATION ---
@@ -159,12 +137,9 @@ app.post('/register', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const count = await User.countDocuments();
         const role = count === 0 ? 'Owner' : 'User';
-        
         await new User({ username, password: hashedPassword, role }).save();
         res.redirect('/');
-    } catch (err) {
-        res.status(500).send('Registration failed.');
-    }
+    } catch (err) { res.status(500).send('Registration failed.'); }
 });
 
 app.post('/login', async (req, res) => {
@@ -178,8 +153,7 @@ app.post('/login', async (req, res) => {
         req.session.username = username;
         req.session.role = user.role;
         
-        // FIXED REDIRECTS: Only Admin/Owner go to the management portal.
-        // Users and Staff go to the dashboard.
+        // REDIRECT FIX: Send Staff to Dashboard, Admins/Owner to Admin Panel
         if (user.role === 'Admin' || user.role === 'Owner') {
             res.redirect('/admin');
         } else {
