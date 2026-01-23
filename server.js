@@ -41,6 +41,11 @@ app.use(session({
     cookie: { maxAge: 3600000, sameSite: 'lax', secure: false }
 }));
 
+// --- KEEP-ALIVE ROUTE (For Cron-job.org) ---
+app.get('/ping', (req, res) => {
+    res.status(200).send('Server is awake');
+});
+
 const protect = (req, res, next) => {
     if (req.session.isLoggedIn && !req.session.needs2FA) {
         next();
