@@ -27,6 +27,7 @@
         .btn-ban { background: #333; color: white; min-width: 80px; }
         .btn-delete { background: #dc3545; color: white; min-width: 80px; }
         .btn-back { background: #007bff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; }
+        .no-actions { color: #888; font-style: italic; font-weight: bold; font-size: 0.85rem; }
         .role-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; color: white; }
         .role-owner { background: #ff4757; } .role-management { background: #ffa502; } .role-admin { background: #5352ed; } .role-staff { background: #2ed573; } .role-user { background: #747d8c; }
     </style>
@@ -60,28 +61,42 @@
         list.innerHTML = '';
         
         users.forEach(user => {
-            let promoteText = "";
-            let nextRole = "";
-            let demoteText = "";
-            let prevRole = "";
+            let actionHTML = "";
 
-            // Dynamic Button Logic based on current rank
-            if (user.role === 'User') {
-                promoteText = "Promote to Staff";
-                nextRole = "Staff";
-            } else if (user.role === 'Staff') {
-                promoteText = "Promote to Admin";
-                nextRole = "Admin";
-                demoteText = "Demote to User";
-                prevRole = "User";
-            } else if (user.role === 'Admin') {
-                promoteText = "Promote to Management";
-                nextRole = "Management";
-                demoteText = "Demote to Staff";
-                prevRole = "Staff";
-            } else if (user.role === 'Management') {
-                demoteText = "Demote to Admin";
-                prevRole = "Admin";
+            // Check if the user is an Owner
+            if (user.role === 'Owner') {
+                actionHTML = `<span class="no-actions">No Actions Available</span>`;
+            } else {
+                let promoteText = "";
+                let nextRole = "";
+                let demoteText = "";
+                let prevRole = "";
+
+                // Dynamic Logic for other ranks
+                if (user.role === 'User') {
+                    promoteText = "Promote to Staff";
+                    nextRole = "Staff";
+                } else if (user.role === 'Staff') {
+                    promoteText = "Promote to Admin";
+                    nextRole = "Admin";
+                    demoteText = "Demote to User";
+                    prevRole = "User";
+                } else if (user.role === 'Admin') {
+                    promoteText = "Promote to Management";
+                    nextRole = "Management";
+                    demoteText = "Demote to Staff";
+                    prevRole = "Staff";
+                } else if (user.role === 'Management') {
+                    demoteText = "Demote to Admin";
+                    prevRole = "Admin";
+                }
+
+                actionHTML = `
+                    ${promoteText ? `<button class="btn btn-promote" onclick="updateRole('${user.username}', '${nextRole}')">${promoteText}</button>` : ''}
+                    ${demoteText ? `<button class="btn btn-demote" onclick="updateRole('${user.username}', '${prevRole}')">${demoteText}</button>` : ''}
+                    <button class="btn btn-ban" onclick="toggleBan('${user.username}', ${!user.isBanned})">${user.isBanned ? 'Unban' : 'Ban'}</button>
+                    <button class="btn btn-delete" onclick="deleteAccount('${user.username}')">Delete</button>
+                `;
             }
 
             const row = document.createElement('tr');
@@ -89,12 +104,7 @@
                 <td><strong>${user.username}</strong></td>
                 <td><span class="role-badge role-${user.role.toLowerCase()}">${user.role}</span></td>
                 <td>${user.isBanned ? '<b style="color:red">BANNED</b>' : 'Active'}</td>
-                <td>
-                    ${promoteText ? `<button class="btn btn-promote" onclick="updateRole('${user.username}', '${nextRole}')">${promoteText}</button>` : ''}
-                    ${demoteText ? `<button class="btn btn-demote" onclick="updateRole('${user.username}', '${prevRole}')">${demoteText}</button>` : ''}
-                    <button class="btn btn-ban" onclick="toggleBan('${user.username}', ${!user.isBanned})">${user.isBanned ? 'Unban' : 'Ban'}</button>
-                    <button class="btn btn-delete" onclick="deleteAccount('${user.username}')">Delete</button>
-                </td>
+                <td>${actionHTML}</td>
             `;
             list.appendChild(row);
         });
