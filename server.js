@@ -42,13 +42,21 @@ const protect = (req, res, next) => {
 
 // --- PAGE ROUTES ---
 
-// Fix for "Cannot GET /"
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-// Fix for "Cannot GET /register"
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
 
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+
+// Documents Route (Accessible by Staff, Admin, and Owner)
+app.get('/documents', protect, async (req, res) => {
+    const user = await User.findOne({ username: req.session.username });
+    if (user && user.role !== 'User') {
+        res.sendFile(path.join(__dirname, 'documents.html'));
+    } else {
+        res.status(403).send('Unauthorized. Staff+ access required.');
+    }
+});
 
 app.get('/admin', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
@@ -59,7 +67,6 @@ app.get('/admin', protect, async (req, res) => {
     }
 });
 
-// Fix for "Cannot GET /logout"
 app.get('/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/');
@@ -157,7 +164,7 @@ app.post('/register', async (req, res) => {
         await new User({ username, password: hashedPassword, role }).save();
         res.redirect('/');
     } catch (err) {
-        res.status(500).send('Registration failed. Username may exist.');
+        res.status(500).send('Registration failed.');
     }
 });
 
@@ -172,8 +179,6 @@ app.post('/login', async (req, res) => {
         req.session.username = username;
         req.session.role = user.role;
         
-        // Redirect regular users to dashboard (where they see Pending Access)
-        // Redirect staff/admin/owner to admin or dashboard based on role
         if (user.role === 'User') {
             res.redirect('/dashboard');
         } else {
@@ -193,4 +198,4 @@ app.get('/api/me', protect, (req, res) => {
     res.json({ username: req.session.username, role: req.session.role });
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("Server Live on Port 3000"));
+app.listen(process.env.PORT || 3000, () => console.log("Server Live"));
