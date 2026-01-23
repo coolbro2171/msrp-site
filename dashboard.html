@@ -15,6 +15,7 @@
             overflow: hidden;
         }
 
+        /* Background image with blur and scaling to match your screenshot */
         .bg-blur {
             position: fixed;
             top: 0;
@@ -29,6 +30,7 @@
             transform: scale(1.1);
         }
 
+        /* Subtle dark overlay for readability */
         .overlay {
             position: fixed;
             top: 0;
@@ -82,19 +84,39 @@
             transition: background 0.2s, transform 0.1s;
         }
 
+        /* Elements hidden by default */
         #docs-btn, #admin-btn, #pending-status {
             display: none;
         }
 
-        .btn-docs { background-color: #007bff; color: white; }
-        .btn-docs:hover { background-color: #0069d9; }
+        .btn-docs {
+            background-color: #007bff;
+            color: white;
+        }
 
-        .btn-admin { background-color: #343a40; color: white; }
-        .btn-admin:hover { background-color: #23272b; }
+        .btn-docs:hover {
+            background-color: #0069d9;
+        }
 
-        .btn-settings { background-color: #6c757d; color: white; }
-        .btn-settings:hover { background-color: #5a6268; }
+        .btn-admin {
+            background-color: #343a40;
+            color: white;
+        }
 
+        .btn-admin:hover {
+            background-color: #23272b;
+        }
+
+        .btn-settings {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-settings:hover {
+            background-color: #5a6268;
+        }
+
+        /* Pending status styling for "User" role */
         .status-box {
             background-color: #f8f9fa;
             border: 2px dashed #dee2e6;
@@ -105,7 +127,9 @@
             font-size: 1.1rem;
         }
 
-        .btn:active { transform: scale(0.98); }
+        .btn:active {
+            transform: scale(0.98);
+        }
 
         .logout-link {
             display: inline-block;
@@ -134,9 +158,13 @@
     
     <div class="btn-group">
         <a href="/documents" id="docs-btn" class="btn btn-docs">View Internal Documents</a>
-        <a href="/admin" id="admin-btn" class="btn btn-admin">Admin Panel</a>
-        <div id="pending-status" class="status-box">Pending Permission...</div>
         
+        <a href="/admin" id="admin-btn" class="btn btn-admin">Admin Panel</a>
+
+        <div id="pending-status" class="status-box">
+            Pending Permission...
+        </div>
+
         <a href="/settings" class="btn btn-settings">Account Settings</a>
     </div>
     
@@ -149,18 +177,27 @@
             const res = await fetch('/api/me');
             if (res.ok) {
                 const data = await res.json();
+                
+                // Set personalized welcome message
                 document.getElementById('welcome-text').innerText = `Welcome, ${data.username}`;
+                
                 const role = data.role;
+
                 if (role === 'User') {
+                    // Show pending box for basic users
                     document.getElementById('pending-status').style.display = 'block';
                 } else {
+                    // Show documents button for Staff and higher
                     document.getElementById('docs-btn').style.display = 'block';
+                    
+                    // Show admin panel button for Admin and higher (including Management/Owner)
                     const privilegedRoles = ['Admin', 'Management', 'Owner'];
                     if (privilegedRoles.includes(role)) {
                         document.getElementById('admin-btn').style.display = 'block';
                     }
                 }
             } else {
+                // Redirect to login if session is invalid
                 window.location.href = '/';
             }
         } catch (err) {
