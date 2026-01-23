@@ -3,36 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MSRP | 2FA Verify</title>
+    <title>MSRP | 2FA Verification</title>
     <style>
-        body, html { height: 100%; margin: 0; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; }
-        .bg-blur { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background-image: url('https://cdn.discordapp.com/attachments/1423737735159484537/1462698389459439687/Screenshot_2026-01-19_at_1.40.06_AM.png?ex=6973c0c7&is=69726f47&hm=c6190bbb0efec04d0d16cf86db54ce4a5822e8f0936a68f9f8d8f66f1076b030&'); background-size: cover; background-position: center; filter: blur(10px); transform: scale(1.1); }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.3); z-index: 0; }
-        .verify-card { background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 100%; max-width: 350px; text-align: center; position: relative; z-index: 1; }
-        input { width: 100%; padding: 12px; margin: 20px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 1.2rem; text-align: center; letter-spacing: 3px; }
-        .btn { background: #007bff; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .bg-blur {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: url('https://cdn.discordapp.com/attachments/1423737735159484537/1462698389459439687/Screenshot_2026-01-19_at_1.40.06_AM.png?ex=6973c0c7&is=69726f47&hm=c6190bbb0efec04d0d16cf86db54ce4a5822e8f0936a68f9f8d8f66f1076b030&');
+            background-size: cover;
+            background-position: center;
+            filter: blur(10px);
+            transform: scale(1.1);
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 0;
+        }
+
+        .verify-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 18px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        h2 { color: #222; margin-bottom: 10px; }
+        p { color: #666; font-size: 0.95rem; margin-bottom: 25px; }
+
+        /* Centered Input Styling */
+        .token-input {
+            width: 80%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 1.8rem;
+            text-align: center; /* Centers the numbers inside */
+            letter-spacing: 8px;
+            font-weight: bold;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .token-input:focus {
+            border-color: #007bff;
+        }
+
+        .btn {
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            font-size: 1rem;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .btn-verify {
+            background: #007bff;
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .btn-verify:hover { opacity: 0.9; }
+
+        .cancel-link {
+            color: #dc3545;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
+
 <div class="bg-blur"></div>
 <div class="overlay"></div>
+
 <div class="verify-card">
-    <h2>2FA Required</h2>
-    <p>Enter the 6-digit code from your app.</p>
-    <input type="text" id="token" placeholder="000000" maxlength="6">
-    <button class="btn" onclick="verify()">Verify</button>
+    <h2>Two-Factor Check</h2>
+    <p>Please enter the 6-digit code from your authenticator app to continue.</p>
+
+    <input type="text" 
+           id="2fa-token" 
+           class="token-input" 
+           placeholder="000000" 
+           maxlength="6" 
+           autocomplete="one-time-code">
+
+    <button class="btn btn-verify" onclick="submitCode()">Verify Identity</button>
+    
+    <a href="/logout" class="cancel-link">Cancel and Sign Out</a>
 </div>
+
 <script>
-    async function verify() {
-        const token = document.getElementById('token').value;
+    // Allow pressing "Enter" to submit
+    document.getElementById('2fa-token').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            submitCode();
+        }
+    });
+
+    async function submitCode() {
+        const token = document.getElementById('2fa-token').value;
+        
+        if (token.length !== 6) {
+            alert("Please enter a valid 6-digit code.");
+            return;
+        }
+
         const res = await fetch('/api/login/2fa-verify', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token })
         });
-        if (res.ok) window.location.href = '/dashboard';
-        else alert("Invalid code.");
+
+        if (res.ok) {
+            // Success: Send to dashboard
+            window.location.href = '/dashboard';
+        } else {
+            // Fail: Clear input and alert
+            alert("Invalid or expired 2FA code.");
+            document.getElementById('2fa-token').value = '';
+            document.getElementById('2fa-token').focus();
+        }
     }
 </script>
+
 </body>
 </html>
