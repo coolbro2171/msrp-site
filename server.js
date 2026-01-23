@@ -48,7 +48,7 @@ app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.h
 
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
-// Documents Route (Accessible by Staff, Admin, and Owner)
+// Documents Route (Staff+)
 app.get('/documents', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     if (user && user.role !== 'User') {
@@ -58,12 +58,13 @@ app.get('/documents', protect, async (req, res) => {
     }
 });
 
+// Admin Route (Admin/Owner Only)
 app.get('/admin', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     if (user && (user.role === 'Admin' || user.role === 'Owner')) {
         res.sendFile(path.join(__dirname, 'admin.html'));
     } else {
-        res.status(403).send('Unauthorized access.');
+        res.status(403).send('Unauthorized access. Admins only.');
     }
 });
 
@@ -82,14 +83,12 @@ app.post('/api/promote-user/:username', protect, async (req, res) => {
 
         if (!target) return res.status(404).send('User not found');
 
-        // Step 1: User to Staff (Admin or Owner)
         if (target.role === 'User') {
             if (currentUser.role === 'Owner' || currentUser.role === 'Admin') {
                 await User.findOneAndUpdate({ username: req.params.username }, { role: 'Staff' });
                 return res.sendStatus(200);
             }
         } 
-        // Step 2: Staff to Admin (Owner Only)
         else if (target.role === 'Staff') {
             if (currentUser.role === 'Owner') {
                 await User.findOneAndUpdate({ username: req.params.username }, { role: 'Admin' });
@@ -179,10 +178,12 @@ app.post('/login', async (req, res) => {
         req.session.username = username;
         req.session.role = user.role;
         
-        if (user.role === 'User') {
-            res.redirect('/dashboard');
-        } else {
+        // FIXED REDIRECTS: Only Admin/Owner go to the management portal.
+        // Users and Staff go to the dashboard.
+        if (user.role === 'Admin' || user.role === 'Owner') {
             res.redirect('/admin');
+        } else {
+            res.redirect('/dashboard');
         }
     } else {
         res.status(401).send('Invalid credentials.');
