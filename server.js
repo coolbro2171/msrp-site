@@ -22,7 +22,6 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
     role: { type: String, enum: ['User', 'Staff', 'Admin', 'Management', 'Owner'], default: 'User' },
     isBanned: { type: Boolean, default: false },
-    // 2FA Fields
     twoFactorSecret: { type: String },
     twoFactorEnabled: { type: Boolean, default: false }
 });
@@ -43,8 +42,13 @@ app.use(session({
 }));
 
 const protect = (req, res, next) => {
-    if (req.session.isLoggedIn) next();
-    else res.redirect('/');
+    if (req.session.isLoggedIn && !req.session.needs2FA) {
+        next();
+    } else if (req.session.needs2FA) {
+        res.redirect('/2fa-verify');
+    } else {
+        res.redirect('/');
+    }
 };
 
 // --- PAGE ROUTES ---
@@ -52,6 +56,10 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/settings', protect, (req, res) => res.sendFile(path.join(__dirname, 'settings.html')));
+app.get('/2fa-verify', (req, res) => {
+    if (!req.session.username || !req.session.needs2FA) return res.redirect('/');
+    res.sendFile(path.join(__dirname, '2fa-verify.html'));
+});
 
 app.get('/documents', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
@@ -97,7 +105,6 @@ app.post('/api/settings/2fa/setup', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     user.twoFactorSecret = secret; 
     await user.save();
-    
     const qrImageUrl = await qrcode.toDataURL(otpauth);
     res.json({ qrCode: qrImageUrl });
 });
@@ -168,11 +175,7 @@ app.post('/api/ban-user/:username', protect, async (req, res) => {
         const currentUser = await User.findOne({ username: req.session.username });
         const target = await User.findOne({ username: req.params.username });
         if (!target || target.role === 'Owner') return res.sendStatus(403);
-
-        const canBan = currentUser.role === 'Owner' || 
-                      currentUser.role === 'Management' ||
-                      (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
-
+        const canBan = currentUser.role === 'Owner' || currentUser.role === 'Management' || (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
         if (canBan) {
             target.isBanned = !target.isBanned;
             await target.save();
@@ -186,11 +189,7 @@ app.delete('/api/delete-user/:username', protect, async (req, res) => {
         const currentUser = await User.findOne({ username: req.session.username });
         const target = await User.findOne({ username: req.params.username });
         if (!target || target.role === 'Owner') return res.sendStatus(403);
-
-        const canDelete = currentUser.role === 'Owner' || 
-                          currentUser.role === 'Management' ||
-                          (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
-
+        const canDelete = currentUser.role === 'Owner' || currentUser.role === 'Management' || (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
         if (canDelete) {
             await User.findOneAndDelete({ username: req.params.username });
             res.sendStatus(200);
@@ -198,7 +197,7 @@ app.delete('/api/delete-user/:username', protect, async (req, res) => {
     } catch (err) { res.status(500).send('Error'); }
 });
 
-// --- AUTHENTICATION ---
+// --- AUTHENTICATION & 2FA ---
 
 app.post('/register', async (req, res) => {
     try {
@@ -214,18 +213,35 @@ app.post('/register', async (req, res) => {
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await User.findOne({ username });
-    
     if (user && await bcrypt.compare(password, user.password)) {
         if (user.isBanned) return res.status(403).send('Your account is banned.');
         
-        req.session.isLoggedIn = true;
         req.session.username = username;
         req.session.role = user.role;
-        
-        // Redirect everyone to dashboard
+
+        if (user.twoFactorEnabled) {
+            req.session.needs2FA = true;
+            return res.redirect('/2fa-verify');
+        }
+
+        req.session.isLoggedIn = true;
         res.redirect('/dashboard');
     } else {
         res.status(401).send('Invalid credentials.');
+    }
+});
+
+app.post('/api/login/2fa-verify', async (req, res) => {
+    const { token } = req.body;
+    const user = await User.findOne({ username: req.session.username });
+    if (!user) return res.status(404).send("User not found");
+    const isValid = authenticator.check(token, user.twoFactorSecret);
+    if (isValid) {
+        req.session.isLoggedIn = true;
+        delete req.session.needs2FA;
+        res.sendStatus(200);
+    } else {
+        res.status(400).send("Invalid token");
     }
 });
 
