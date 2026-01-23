@@ -26,9 +26,8 @@ const User = mongoose.model('User', userSchema);
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// IMPORTANT: These lines fix the "Cannot GET" errors by serving your static files
+// Serving static files (Fixes "Cannot GET" errors for HTML and PDFs)
 app.use(express.static(__dirname)); 
-// This specific line fixes the "Cannot GET /files/guide.pdf" error
 app.use('/files', express.static(path.join(__dirname, 'files'))); 
 
 app.use(session({
@@ -46,16 +45,13 @@ const protect = (req, res, next) => {
 
 // --- PAGE ROUTES ---
 
-// Main Login Page
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-// Fixes image_02fc53.png ("Cannot GET /register")
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
 
-// Dashboard
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
-// Fixes image_028ade.png ("Not Found /documents")
+// Documents Route (Staff+)
 app.get('/documents', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     if (user && user.role !== 'User') {
@@ -65,7 +61,6 @@ app.get('/documents', protect, async (req, res) => {
     }
 });
 
-// Admin Panel (Admin/Owner Only)
 app.get('/admin', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     if (user && (user.role === 'Admin' || user.role === 'Owner')) {
@@ -75,7 +70,6 @@ app.get('/admin', protect, async (req, res) => {
     }
 });
 
-// Logout Fix
 app.get('/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/');
@@ -83,11 +77,13 @@ app.get('/logout', (req, res) => {
 
 // --- MANAGEMENT API ---
 
-// Promotion Pipeline: User -> Staff -> Admin
+// Promotion: Admins can make Users into Staff. Owners can make Staff into Admins.
 app.post('/api/promote-user/:username', protect, async (req, res) => {
     try {
         const currentUser = await User.findOne({ username: req.session.username });
         const target = await User.findOne({ username: req.params.username });
+
+        if (!target) return res.status(404).send('User not found');
 
         if (target.role === 'User' && (currentUser.role === 'Owner' || currentUser.role === 'Admin')) {
             await User.findOneAndUpdate({ username: req.params.username }, { role: 'Staff' });
@@ -96,12 +92,31 @@ app.post('/api/promote-user/:username', protect, async (req, res) => {
             await User.findOneAndUpdate({ username: req.params.username }, { role: 'Admin' });
             res.sendStatus(200);
         } else {
-            res.status(403).send('Invalid promotion path.');
+            res.status(403).send('Unauthorized promotion.');
         }
     } catch (err) { res.status(500).send('Error'); }
 });
 
-// Fixes image_f7aa0f.png ("Deletion failed")
+// Demotion: Admins can demote Staff to User. Owners can demote Admins to Staff.
+app.post('/api/demote-user/:username', protect, async (req, res) => {
+    try {
+        const currentUser = await User.findOne({ username: req.session.username });
+        const target = await User.findOne({ username: req.params.username });
+
+        if (!target) return res.status(404).send('User not found');
+
+        if (target.role === 'Staff' && (currentUser.role === 'Owner' || currentUser.role === 'Admin')) {
+            await User.findOneAndUpdate({ username: req.params.username }, { role: 'User' });
+            res.sendStatus(200);
+        } else if (target.role === 'Admin' && currentUser.role === 'Owner') {
+            await User.findOneAndUpdate({ username: req.params.username }, { role: 'Staff' });
+            res.sendStatus(200);
+        } else {
+            res.status(403).send('Unauthorized demotion.');
+        }
+    } catch (err) { res.status(500).send('Error'); }
+});
+
 app.delete('/api/delete-user/:username', protect, async (req, res) => {
     try {
         const currentUser = await User.findOne({ username: req.session.username });
@@ -139,7 +154,7 @@ app.post('/login', async (req, res) => {
         req.session.username = username;
         req.session.role = user.role;
         
-        // REDIRECT FIX: Send Staff to Dashboard, Admins/Owner to Admin Panel
+        // Admins/Owner to Management Panel, Staff/User to Dashboard
         if (user.role === 'Admin' || user.role === 'Owner') {
             res.redirect('/admin');
         } else {
@@ -159,4 +174,4 @@ app.get('/api/me', protect, (req, res) => {
     res.json({ username: req.session.username, role: req.session.role });
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("Server Live on Port 3000"));
+app.listen(process.env.PORT || 3000, () => console.log("Server Live"));
