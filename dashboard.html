@@ -15,7 +15,7 @@
             overflow: hidden;
         }
 
-        /* Background image with blur and scaling to prevent white edges */
+        /* Background image with blur and scaling to match your screenshot */
         .bg-blur {
             position: fixed;
             top: 0;
@@ -151,8 +151,9 @@
                 // Set personalized welcome message
                 document.getElementById('welcome-text').innerText = `Welcome, ${data.username}`;
                 
-                // Show Admin Panel button if user is Admin or Owner
-                if (data.role === 'Admin' || data.role === 'Owner') {
+                // Show Admin Panel button if user is Admin, Management, or Owner
+                const privilegedRoles = ['Admin', 'Management', 'Owner'];
+                if (privilegedRoles.includes(data.role)) {
                     document.getElementById('admin-btn').style.display = 'block';
                 }
             } else {
@@ -168,5 +169,3 @@
 
 </body>
 </html>
-
-
