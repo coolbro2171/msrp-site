@@ -4,6 +4,9 @@ const path = require('path');
 const session = require('express-session');
 const mongoose = require('mongoose');
 const MongoStore = require('connect-mongo');
+const { authenticator } = require('otplib');
+const qrcode = require('qrcode');
+
 const app = express();
 
 // --- DATABASE CONNECTION ---
@@ -17,9 +20,11 @@ mongoose.connect(MONGODB_URI)
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    // Hierarchy: User < Staff < Admin < Management < Owner
     role: { type: String, enum: ['User', 'Staff', 'Admin', 'Management', 'Owner'], default: 'User' },
-    isBanned: { type: Boolean, default: false }
+    isBanned: { type: Boolean, default: false },
+    // 2FA Fields
+    twoFactorSecret: { type: String },
+    twoFactorEnabled: { type: Boolean, default: false }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -43,12 +48,10 @@ const protect = (req, res, next) => {
 };
 
 // --- PAGE ROUTES ---
-
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
-
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/settings', protect, (req, res) => res.sendFile(path.join(__dirname, 'settings.html')));
 
 app.get('/documents', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
@@ -74,6 +77,50 @@ app.get('/logout', (req, res) => {
     res.redirect('/');
 });
 
+// --- SETTINGS & SECURITY API ---
+
+app.post('/api/settings/password', protect, async (req, res) => {
+    const { oldPass, newPass } = req.body;
+    const user = await User.findOne({ username: req.session.username });
+    if (user && await bcrypt.compare(oldPass, user.password)) {
+        user.password = await bcrypt.hash(newPass, 10);
+        await user.save();
+        res.send("Password updated successfully.");
+    } else {
+        res.status(400).send("Incorrect current password.");
+    }
+});
+
+app.post('/api/settings/2fa/setup', protect, async (req, res) => {
+    const secret = authenticator.generateSecret();
+    const otpauth = authenticator.keyuri(req.session.username, 'MSRP-Portal', secret);
+    const user = await User.findOne({ username: req.session.username });
+    user.twoFactorSecret = secret; 
+    await user.save();
+    
+    const qrImageUrl = await qrcode.toDataURL(otpauth);
+    res.json({ qrCode: qrImageUrl });
+});
+
+app.post('/api/settings/2fa/verify', protect, async (req, res) => {
+    const { token } = req.body;
+    const user = await User.findOne({ username: req.session.username });
+    const isValid = authenticator.check(token, user.twoFactorSecret);
+    if (isValid) {
+        user.twoFactorEnabled = true;
+        await user.save();
+        res.sendStatus(200);
+    } else {
+        res.status(400).send("Invalid token.");
+    }
+});
+
+app.delete('/api/settings/account', protect, async (req, res) => {
+    await User.findOneAndDelete({ username: req.session.username });
+    req.session.destroy();
+    res.sendStatus(200);
+});
+
 // --- MANAGEMENT API ---
 
 app.post('/api/promote-user/:username', protect, async (req, res) => {
@@ -82,7 +129,6 @@ app.post('/api/promote-user/:username', protect, async (req, res) => {
         const target = await User.findOne({ username: req.params.username });
         if (!target) return res.status(404).send('User not found');
 
-        // Admin+ can make Staff | Management+ can make Admin | Owner can make Management
         if (target.role === 'User' && (['Owner', 'Management', 'Admin'].includes(currentUser.role))) {
             target.role = 'Staff';
         } else if (target.role === 'Staff' && (['Owner', 'Management'].includes(currentUser.role))) {
@@ -176,8 +222,7 @@ app.post('/login', async (req, res) => {
         req.session.username = username;
         req.session.role = user.role;
         
-        // Everyone goes to the dashboard. 
-        // dashboard.html script handles showing/hiding the Admin Panel button.
+        // Redirect everyone to dashboard
         res.redirect('/dashboard');
     } else {
         res.status(401).send('Invalid credentials.');
