@@ -41,7 +41,7 @@ app.use(session({
     cookie: { maxAge: 3600000, sameSite: 'lax', secure: false }
 }));
 
-// --- CRON-JOB PING ROUTE ---
+// --- KEEP-ALIVE ROUTE ---
 app.get('/ping', (req, res) => res.status(200).send('Server is awake'));
 
 const protect = (req, res, next) => {
@@ -54,20 +54,18 @@ const protect = (req, res, next) => {
     }
 };
 
-// --- PAGE ROUTES (FIXING "CANNOT GET" ERRORS) ---
+// --- PAGE ROUTES ---
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-
-// Fix for "Cannot GET /register"
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
-
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/settings', protect, (req, res) => res.sendFile(path.join(__dirname, 'settings.html')));
+app.get('/documents', protect, (req, res) => res.sendFile(path.join(__dirname, 'documents.html')));
+
 app.get('/2fa-verify', (req, res) => {
     if (!req.session.username || !req.session.needs2FA) return res.redirect('/');
     res.sendFile(path.join(__dirname, '2fa-verify.html'));
 });
 
-// Fix for "Cannot GET /admin"
 app.get('/admin', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     const hasAccess = user && ['Owner', 'Management', 'Admin'].includes(user.role);
@@ -78,17 +76,9 @@ app.get('/admin', protect, async (req, res) => {
     }
 });
 
-// Fix for "Cannot GET /documents"
-app.get('/documents', protect, async (req, res) => {
-    const user = await User.findOne({ username: req.session.username });
-    if (user && user.role !== 'User') {
-        res.sendFile(path.join(__dirname, 'documents.html'));
-    } else {
-        res.status(403).send('Unauthorized. Staff access required.');
-    }
-});
-
 // --- API ROUTES ---
+
+// This route is critical for the new locked sections in documents.html
 app.get('/api/me', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     res.json({ 
@@ -101,6 +91,24 @@ app.get('/api/me', protect, async (req, res) => {
 app.get('/api/users', protect, async (req, res) => {
     const users = await User.find({}, 'username role isBanned');
     res.json(users);
+});
+
+app.post('/api/promote-user/:username', protect, async (req, res) => {
+    const currentUser = await User.findOne({ username: req.session.username });
+    const target = await User.findOne({ username: req.params.username });
+    if (!target) return res.status(404).send('User not found');
+
+    if (target.role === 'User' && ['Owner', 'Management', 'Admin'].includes(currentUser.role)) {
+        target.role = 'Staff';
+    } else if (target.role === 'Staff' && ['Owner', 'Management'].includes(currentUser.role)) {
+        target.role = 'Admin';
+    } else if (target.role === 'Admin' && currentUser.role === 'Owner') {
+        target.role = 'Management';
+    } else {
+        return res.status(403).send('Unauthorized promotion.');
+    }
+    await target.save();
+    res.sendStatus(200);
 });
 
 // --- 2FA & SETTINGS API ---
@@ -134,7 +142,7 @@ app.post('/api/settings/2fa/disable', protect, async (req, res) => {
     res.send("2FA Disabled.");
 });
 
-// --- AUTHENTICATION LOGIC ---
+// --- LOGIN & AUTH ---
 app.post('/register', async (req, res) => {
     try {
         const { username, password } = req.body;
