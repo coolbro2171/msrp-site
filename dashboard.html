@@ -179,7 +179,7 @@
                 const data = await res.json();
                 
                 // Set personalized welcome message
-                document.getElementById('welcome-text').innerText = `Welcome, ${data.username}`;
+                document.getElementById('welcome-text').innerText = `Welcome, ${data.username}!`;
                 
                 const role = data.role;
 
@@ -209,3 +209,4 @@
 
 </body>
 </html>
+
