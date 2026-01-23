@@ -3,31 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MSRP | Admin Portal</title>
+    <title>MSRP | Admin Panel</title>
     <style>
-        :root {
-            --primary: #007bff;
-            --danger: #dc3545;
-            --success: #28a745;
-            --warning: #fd7e14;
-            --dark: #343a40;
-            --light: #f8f9fa;
+        body, html {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #e9ecef;
-            margin: 0;
-            padding: 20px;
+        .bg-fixed {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background-image: url('https://mwskpndfresmcrvjyodr.supabase.co/storage/v1/object/public/user_uploads/6791986427d11f0037a3c333/145a3059-e91b-426b-9516-7d19c3666d99');
+            background-size: cover;
+            background-position: center;
+            filter: blur(15px);
+            transform: scale(1.1);
+        }
+
+        .main-content {
+            position: relative;
+            z-index: 1;
+            padding: 40px 20px;
         }
 
         .container {
             max-width: 1100px;
             margin: auto;
-            background: white;
+            background: rgba(255, 255, 255, 0.97);
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
         }
 
         header {
@@ -39,90 +47,72 @@
             margin-bottom: 30px;
         }
 
-        h1 { margin: 0; color: var(--dark); }
-
-        .auth-info { font-size: 0.9rem; color: #666; }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        th {
-            background-color: var(--light);
-            text-align: left;
-            padding: 12px;
-            border-bottom: 2px solid #dee2e6;
-            color: #495057;
-        }
-
-        td {
-            padding: 12px;
-            border-bottom: 1px solid #dee2e6;
-            vertical-align: middle;
-        }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 12px; border-bottom: 2px solid #dee2e6; color: #444; }
+        td { padding: 12px; border-bottom: 1px solid #eee; }
 
         .badge {
             padding: 4px 8px;
             border-radius: 4px;
             font-size: 0.75rem;
             font-weight: bold;
-            text-transform: uppercase;
+            color: white;
         }
-
-        .badge-owner { background: var(--danger); color: white; }
-        .badge-admin { background: var(--success); color: white; }
-        .badge-staff { background: var(--primary); color: white; }
-        .badge-user { background: #6c757d; color: white; }
-        .badge-banned { background: #000; color: white; }
+        .badge-owner { background: #dc3545; }
+        .badge-admin { background: #28a745; }
+        .badge-staff { background: #007bff; }
+        .badge-user { background: #6c757d; }
+        .badge-banned { background: #000; }
 
         .btn {
             padding: 6px 12px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 0.85rem;
             font-weight: 600;
-            margin-right: 5px;
+            font-size: 0.75rem;
+            margin: 2px;
             transition: 0.2s;
         }
+        .btn-promote { background: #28a745; color: white; }
+        .btn-demote { background: #fd7e14; color: white; }
+        .btn-ban { background: #343a40; color: white; }
+        .btn-delete { background: #dc3545; color: white; }
+        .btn-nav { background: #007bff; color: white; text-decoration: none; padding: 10px 15px; }
 
-        .btn-promote { background: var(--success); color: white; }
-        .btn-demote { background: var(--warning); color: white; }
-        .btn-ban { background: var(--dark); color: white; }
-        .btn-delete { background: var(--danger); color: white; }
-        .btn-nav { background: var(--primary); color: white; text-decoration: none; display: inline-block; }
-
-        .btn:hover { opacity: 0.85; }
+        .btn:hover { opacity: 0.8; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <div>
-            <h1>User Management</h1>
-            <div id="auth-banner" class="auth-info">Loading session...</div>
-        </div>
-        <nav>
-            <a href="/dashboard" class="btn btn-nav">Dashboard</a>
-            <a href="/logout" class="btn btn-ban">Logout</a>
-        </nav>
-    </header>
+<div class="bg-fixed"></div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Username</th>
-                <th>Current Role</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="user-table-body">
-            </tbody>
-    </table>
+<div class="main-content">
+    <div class="container">
+        <header>
+            <div>
+                <h1 style="margin:0;">Management Portal</h1>
+                <span id="my-info" style="font-size: 0.8rem; color: #666;"></span>
+            </div>
+            <nav>
+                <a href="/dashboard" class="btn-nav" style="border-radius: 6px;">Dashboard</a>
+                <a href="/logout" class="btn-nav" style="background:#6c757d; border-radius: 6px;">Logout</a>
+            </nav>
+        </header>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="user-table-body">
+                </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
@@ -134,7 +124,7 @@
         const data = await res.json();
         myRole = data.role;
         myName = data.username;
-        document.getElementById('auth-banner').innerText = `Logged In: ${myName} (${myRole})`;
+        document.getElementById('my-info').innerText = `Authorized: ${myName} (${myRole})`;
         fetchUsers();
     }
 
@@ -145,45 +135,38 @@
         tbody.innerHTML = '';
 
         users.forEach(user => {
-            if (user.username === myName) return; // Hide self from management
+            if (user.username === myName) return;
 
             const row = document.createElement('tr');
-            
-            // Status Logic
-            const statusLabel = user.isBanned ? '<span class="badge badge-banned">Banned</span>' : '<span class="badge badge-success">Active</span>';
-            
-            // Role Badge Logic
             const roleClass = `badge-${user.role.toLowerCase()}`;
-            const roleBadge = `<span class="badge ${roleClass}">${user.role}</span>`;
+            const statusLabel = user.isBanned ? '<span class="badge badge-banned">Banned</span>' : '<span class="badge" style="background:#e1f6e5; color:#28a745;">Active</span>';
 
-            // Action Button Logic
             let actionsHtml = '';
-
-            // 1. Promotion Buttons
-            if (user.role === 'User' && (myRole === 'Admin' || myRole === 'Owner')) {
-                actionsHtml += `<button class="btn btn-promote" onclick="manageUser('promote', '${user.username}')">Promote to Staff</button>`;
-            } else if (user.role === 'Staff' && myRole === 'Owner') {
-                actionsHtml += `<button class="btn btn-promote" onclick="manageUser('promote', '${user.username}')">Promote to Admin</button>`;
-            }
-
-            // 2. Demotion Buttons
-            if (user.role === 'Staff' && (myRole === 'Admin' || myRole === 'Owner')) {
-                actionsHtml += `<button class="btn btn-demote" onclick="manageUser('demote', '${user.username}')">Demote to Member</button>`;
-            } else if (user.role === 'Admin' && myRole === 'Owner') {
-                actionsHtml += `<button class="btn btn-demote" onclick="manageUser('demote', '${user.username}')">Demote to Staff</button>`;
-            }
-
-            // 3. Ban/Delete (Admins can ban Users/Staff, Owners can ban anyone but self)
-            const canManage = myRole === 'Owner' || (myRole === 'Admin' && (user.role === 'User' || user.role === 'Staff'));
             
+            // Promotion
+            if (user.role === 'User' && (myRole === 'Admin' || myRole === 'Owner')) {
+                actionsHtml += `<button class="btn btn-promote" onclick="manage('promote', '${user.username}')">Promote to Staff</button>`;
+            } else if (user.role === 'Staff' && myRole === 'Owner') {
+                actionsHtml += `<button class="btn btn-promote" onclick="manage('promote', '${user.username}')">Promote to Admin</button>`;
+            }
+
+            // Demotion
+            if (user.role === 'Staff' && (myRole === 'Admin' || myRole === 'Owner')) {
+                actionsHtml += `<button class="btn btn-demote" onclick="manage('demote', '${user.username}')">Demote to Member</button>`;
+            } else if (user.role === 'Admin' && myRole === 'Owner') {
+                actionsHtml += `<button class="btn btn-demote" onclick="manage('demote', '${user.username}')">Demote to Staff</button>`;
+            }
+
+            // Ban/Delete
+            const canManage = myRole === 'Owner' || (myRole === 'Admin' && (user.role === 'User' || user.role === 'Staff'));
             if (canManage && user.role !== 'Owner') {
-                actionsHtml += `<button class="btn btn-ban" onclick="manageUser('ban', '${user.username}')">${user.isBanned ? 'Unban' : 'Ban'}</button>`;
-                actionsHtml += `<button class="btn btn-delete" onclick="manageUser('delete', '${user.username}')">Delete</button>`;
+                actionsHtml += `<button class="btn btn-ban" onclick="manage('ban', '${user.username}')">${user.isBanned ? 'Unban' : 'Ban'}</button>`;
+                actionsHtml += `<button class="btn btn-delete" onclick="manage('delete', '${user.username}')">Delete</button>`;
             }
 
             row.innerHTML = `
                 <td><strong>${user.username}</strong></td>
-                <td>${roleBadge}</td>
+                <td><span class="badge ${roleClass}">${user.role}</span></td>
                 <td>${statusLabel}</td>
                 <td>${actionsHtml}</td>
             `;
@@ -191,25 +174,11 @@
         });
     }
 
-    async function manageUser(action, username) {
-        let url = '';
-        let method = 'POST';
-
-        if (action === 'promote') url = `/api/promote-user/${username}`;
-        if (action === 'demote') url = `/api/demote-user/${username}`;
-        if (action === 'ban') url = `/api/ban-user/${username}`;
-        if (action === 'delete') {
-            url = `/api/delete-user/${username}`;
-            method = 'DELETE';
-            if (!confirm(`Are you sure you want to delete ${username}?`)) return;
-        }
-
-        const res = await fetch(url, { method: method });
-        if (res.ok) {
-            fetchUsers();
-        } else {
-            alert(`Action failed: ${action.toUpperCase()} not authorized or user not found.`);
-        }
+    async function manage(action, username) {
+        const method = action === 'delete' ? 'DELETE' : 'POST';
+        const res = await fetch(`/api/${action}-user/${username}`, { method });
+        if (res.ok) fetchUsers();
+        else alert("Action failed.");
     }
 
     init();
