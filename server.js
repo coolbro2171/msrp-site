@@ -10,10 +10,10 @@ const app = express();
 const MONGODB_URI = "mongodb+srv://cool_bro2171:Leonardo3@msrp-site.axszmf7.mongodb.net/MSRP_Database?retryWrites=true&w=majority&appName=MSRP-Site";
 
 mongoose.connect(MONGODB_URI)
-    .then(() => console.log("Connected to Cloud Database successfully"))
+    .then(() => console.log("Connected to Database Successfully"))
     .catch(err => console.error("Database connection error:", err));
 
-// Schema with Banned status and Step-by-Step Roles
+// --- USER SCHEMA ---
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
@@ -31,15 +31,8 @@ app.use(session({
     secret: 'secure-dev-key-789',
     resave: true,
     saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: MONGODB_URI,
-        collectionName: 'sessions'
-    }),
-    cookie: { 
-        maxAge: 3600000, 
-        sameSite: 'lax', 
-        secure: false 
-    }
+    store: MongoStore.create({ mongoUrl: MONGODB_URI }),
+    cookie: { maxAge: 3600000, sameSite: 'lax', secure: false }
 }));
 
 const protect = (req, res, next) => {
@@ -47,21 +40,34 @@ const protect = (req, res, next) => {
     else res.redirect('/');
 };
 
-// --- HTML ROUTES ---
+// --- PAGE ROUTES ---
+
+// Fix for "Cannot GET /"
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
+// Fix for "Cannot GET /register"
+app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
+
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+
 app.get('/admin', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     if (user && (user.role === 'Admin' || user.role === 'Owner')) {
         res.sendFile(path.join(__dirname, 'admin.html'));
     } else {
-        res.status(403).send('Unauthorized. Only Admins and the Owner can access this page.');
+        res.status(403).send('Unauthorized access.');
     }
 });
 
-// --- MANAGEMENT API (PROMOTION PIPELINE) ---
+// Fix for "Cannot GET /logout"
+app.get('/logout', (req, res) => {
+    req.session.destroy();
+    res.redirect('/');
+});
 
-// Step-by-Step Promotion: User -> Staff -> Admin
+// --- MANAGEMENT API ---
+
+// Promotion Pipeline: User -> Staff -> Admin
 app.post('/api/promote-user/:username', protect, async (req, res) => {
     try {
         const currentUser = await User.findOne({ username: req.session.username });
@@ -69,93 +75,114 @@ app.post('/api/promote-user/:username', protect, async (req, res) => {
 
         if (!target) return res.status(404).send('User not found');
 
-        // Path 1: Member to Staff (Admin or Owner can do this)
+        // Step 1: User to Staff (Admin or Owner)
         if (target.role === 'User') {
             if (currentUser.role === 'Owner' || currentUser.role === 'Admin') {
                 await User.findOneAndUpdate({ username: req.params.username }, { role: 'Staff' });
                 return res.sendStatus(200);
             }
         } 
-        
-        // Path 2: Staff to Admin (ONLY Owner can do this)
+        // Step 2: Staff to Admin (Owner Only)
         else if (target.role === 'Staff') {
             if (currentUser.role === 'Owner') {
                 await User.findOneAndUpdate({ username: req.params.username }, { role: 'Admin' });
                 return res.sendStatus(200);
-            } else {
-                return res.status(403).send('Only the Owner can promote Staff to Admin.');
             }
         }
-
-        res.status(403).send('Unauthorized promotion path.');
+        res.status(403).send('Invalid promotion path.');
     } catch (err) {
-        res.status(500).send('Error updating role');
+        res.status(500).send('Error during promotion.');
     }
 });
 
-// Step-by-Step Demotion: Admin -> Staff -> User (Owner Only)
 app.post('/api/demote-user/:username', protect, async (req, res) => {
-    if (req.session.role !== 'Owner') return res.status(403).send('Only the Owner can demote.');
+    if (req.session.role !== 'Owner') return res.sendStatus(403);
     try {
         const target = await User.findOne({ username: req.params.username });
-        
-        if (target.role === 'Admin') {
-            await User.findOneAndUpdate({ username: req.params.username }, { role: 'Staff' });
-        } else if (target.role === 'Staff') {
-            await User.findOneAndUpdate({ username: req.params.username }, { role: 'User' });
-        }
+        const newRole = target.role === 'Admin' ? 'Staff' : 'User';
+        await User.findOneAndUpdate({ username: req.params.username }, { role: newRole });
         res.sendStatus(200);
     } catch (err) {
-        res.status(500).send('Error demoting user');
+        res.status(500).send('Error during demotion.');
     }
 });
 
-// Ban/Unban API
 app.post('/api/ban-user/:username', protect, async (req, res) => {
     try {
         const currentUser = await User.findOne({ username: req.session.username });
         const target = await User.findOne({ username: req.params.username });
 
-        if (!target || target.role === 'Owner') return res.status(403).send('Forbidden');
+        if (target.role === 'Owner') return res.sendStatus(403);
 
-        const canModerate = currentUser.role === 'Owner' || 
-                           (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
+        const canBan = currentUser.role === 'Owner' || 
+                      (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
 
-        if (canModerate) {
+        if (canBan) {
             target.isBanned = !target.isBanned;
             await target.save();
             res.sendStatus(200);
         } else {
-            res.status(403).send('Unauthorized');
+            res.sendStatus(403);
         }
     } catch (err) {
-        res.status(500).send('Error toggling ban');
+        res.status(500).send('Error toggling ban.');
     }
 });
 
-// Delete API
 app.delete('/api/delete-user/:username', protect, async (req, res) => {
-    try {
-        const currentUser = await User.findOne({ username: req.session.username });
-        const target = await User.findOne({ username: req.params.username });
+    const currentUser = await User.findOne({ username: req.session.username });
+    const target = await User.findOne({ username: req.params.username });
+    if (!target || target.role === 'Owner') return res.sendStatus(403);
 
-        if (!target || target.role === 'Owner') return res.status(403).send('Forbidden');
+    const canDelete = currentUser.role === 'Owner' || 
+                     (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
 
-        const canDelete = currentUser.role === 'Owner' || 
-                         (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
-
-        if (canDelete) {
-            await User.findOneAndDelete({ username: req.params.username });
-            res.sendStatus(200);
-        } else {
-            res.status(403).send('Unauthorized');
-        }
-    } catch (err) {
-        res.status(500).send('Error deleting user');
+    if (canDelete) {
+        await User.findOneAndDelete({ username: req.params.username });
+        res.sendStatus(200);
+    } else {
+        res.sendStatus(403);
     }
 });
 
-// --- AUTH & DATA ---
+// --- AUTHENTICATION ---
+
+app.post('/register', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const count = await User.countDocuments();
+        const role = count === 0 ? 'Owner' : 'User';
+        
+        await new User({ username, password: hashedPassword, role }).save();
+        res.redirect('/');
+    } catch (err) {
+        res.status(500).send('Registration failed. Username may exist.');
+    }
+});
+
+app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+    const user = await User.findOne({ username });
+    
+    if (user && await bcrypt.compare(password, user.password)) {
+        if (user.isBanned) return res.status(403).send('Your account is banned.');
+        
+        req.session.isLoggedIn = true;
+        req.session.username = username;
+        req.session.role = user.role;
+        
+        // Redirect regular users to dashboard (where they see Pending Access)
+        // Redirect staff/admin/owner to admin or dashboard based on role
+        if (user.role === 'User') {
+            res.redirect('/dashboard');
+        } else {
+            res.redirect('/admin');
+        }
+    } else {
+        res.status(401).send('Invalid credentials.');
+    }
+});
 
 app.get('/api/users', protect, async (req, res) => {
     const users = await User.find({}, 'username role isBanned');
@@ -166,40 +193,4 @@ app.get('/api/me', protect, (req, res) => {
     res.json({ username: req.session.username, role: req.session.role });
 });
 
-app.post('/register', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const userCount = await User.countDocuments();
-        const role = (userCount === 0) ? 'Owner' : 'User';
-        const newUser = new User({ username, password: hashedPassword, role });
-        await newUser.save();
-        req.session.isLoggedIn = true;
-        req.session.username = username;
-        req.session.role = role;
-        res.redirect('/dashboard');
-    } catch (err) {
-        res.status(500).send('Error');
-    }
-});
-
-app.post('/login', async (req, res) => {
-    const { username, password } = req.body;
-    const user = await User.findOne({ username });
-    if (user && await bcrypt.compare(password, user.password)) {
-        if (user.isBanned) return res.status(403).send('You are banned.');
-        req.session.isLoggedIn = true;
-        req.session.username = username;
-        req.session.role = user.role;
-        res.redirect((user.role === 'Admin' || user.role === 'Owner') ? '/admin' : '/dashboard');
-    } else {
-        res.status(401).send('Invalid login.');
-    }
-});
-
-app.get('/logout', (req, res) => {
-    req.session.destroy();
-    res.redirect('/');
-});
-
-app.listen(process.env.PORT || 3000, () => console.log("Server Running"));
+app.listen(process.env.PORT || 3000, () => console.log("Server Live on Port 3000"));
