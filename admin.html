@@ -134,7 +134,7 @@
         const data = await res.json();
         myRole = data.role;
         myName = data.username;
-        document.getElementById('auth-banner').innerText = `Authorized: ${myName} (${myRole})`;
+        document.getElementById('auth-banner').innerText = `Logged In: ${myName} (${myRole})`;
         fetchUsers();
     }
 
