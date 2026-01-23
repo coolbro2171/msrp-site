@@ -5,93 +5,150 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Dashboard</title>
     <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            background-color: #f0f2f5; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
-        }
-        .dashboard-card { 
-            background: white; 
-            padding: 40px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08); 
-            text-align: center; 
-            width: 100%; 
-            max-width: 400px; 
-        }
-        h1 { color: #1c1e21; margin-bottom: 10px; }
-        p { color: #606770; margin-bottom: 30px; }
-        
-        /* Admin Link Style */
-        #adminSection {
-            display: none; /* Hidden by default */
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
-            border-radius: 8px;
-        }
-        .admin-link {
-            color: #856404;
-            text-decoration: none;
-            font-weight: bold;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
             display: flex;
-            align-items: center;
             justify-content: center;
-            gap: 8px;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
         }
 
-        .logout-btn { 
-            display: inline-block; 
-            padding: 12px 24px; 
-            background-color: #007bff; 
-            color: white; 
-            text-decoration: none; 
-            border-radius: 6px; 
-            font-weight: 600; 
-            transition: background 0.2s; 
+        .dashboard-container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 550px;
         }
-        .logout-btn:hover { background-color: #0056b3; }
+
+        h1 { color: #333; margin-bottom: 10px; }
+        p { color: #666; line-height: 1.6; }
+
+        /* Pending Access Styling */
+        .pending-box {
+            border: 2px dashed #fd7e14;
+            padding: 30px;
+            border-radius: 8px;
+            background-color: #fffaf0;
+        }
+
+        .pending-status {
+            color: #fd7e14;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        /* Active Dashboard Styling */
+        .active-box {
+            text-align: left;
+        }
+
+        .role-indicator {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+            margin-bottom: 20px;
+        }
+
+        .nav-links {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .btn-admin { color: #28a745; }
+        .btn-logout { color: #dc3545; }
+        
+        .nav-links a:hover { opacity: 0.7; }
     </style>
 </head>
 <body>
 
-    <div class="dashboard-card">
-        <div id="adminSection">
-            <a href="/admin" class="admin-link">
-                <span>🛡️</span> Open Admin Control Panel
-            </a>
-        </div>
-
-        <h1>Welcome back!</h1>
-        <p>You have successfully logged into your account.</p>
-        
-        <a href="/logout" class="logout-btn">Logout</a>
+<div class="dashboard-container">
+    <div id="loader">
+        <h1>Verifying Session...</h1>
     </div>
 
-    <script>
-        // When the page loads, ask the server who is logged in
-        async function checkUserRole() {
-            try {
-                const response = await fetch('/api/me');
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // If the user's role is Admin, show the hidden link
-                    if (data.role === 'Admin') {
-                        document.getElementById('adminSection').style.display = 'block';
-                    }
-                }
-            } catch (err) {
-                console.error("Error fetching user data:", err);
-            }
-        }
+    <div id="dashboard-content" style="display: none;">
+        </div>
+</div>
 
-        checkUserRole();
-    </script>
+<script>
+    async function initDashboard() {
+        try {
+            const res = await fetch('/api/me');
+            if (!res.ok) throw new Error('Not logged in');
+            
+            const user = await res.json();
+            const content = document.getElementById('dashboard-content');
+            const loader = document.getElementById('loader');
+
+            loader.style.display = 'none';
+            content.style.display = 'block';
+
+            if (user.role === 'User') {
+                // VIEW FOR UNPROMOTED USERS
+                content.innerHTML = `
+                    <div class="pending-box">
+                        <span class="pending-status">Pending Access</span>
+                        <h1>Welcome, ${user.username}</h1>
+                        <p>Your account is successfully registered, but you do not have permission to view site content yet.</p>
+                        <p><strong>Next Step:</strong> Please wait for an Admin or the Owner to promote you to <strong>Staff</strong>.</p>
+                        <div class="nav-links" style="justify-content: center;">
+                            <a href="/logout" class="btn-logout">Logout</a>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // VIEW FOR STAFF, ADMINS, AND OWNER
+                const roleColors = {
+                    'Staff': '#007bff',
+                    'Admin': '#28a745',
+                    'Owner': '#dc3545'
+                };
+
+                content.innerHTML = `
+                    <div class="active-box">
+                        <span class="role-indicator" style="background-color: ${roleColors[user.role]}">${user.role}</span>
+                        <h1>Hello, ${user.username}</h1>
+                        <p>Welcome to the MSRP Internal Dashboard. You now have access to staff tools and site resources.</p>
+                        
+                        <div class="nav-links">
+                            ${(user.role === 'Admin' || user.role === 'Owner') ? 
+                                `<a href="/admin" class="btn-admin">Management Panel</a>` : 
+                                `<span><em>Staff Access Active</em></span>`}
+                            <a href="/logout" class="btn-logout">Logout</a>
+                        </div>
+                    </div>
+                `;
+            }
+        } catch (err) {
+            window.location.href = '/';
+        }
+    }
+
+    initDashboard();
+</script>
+
 </body>
 </html>
