@@ -51,7 +51,7 @@ app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.h
 
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
-// Documents Route (Staff+)
+// Documents Route (Accessible by Staff, Admin, and Owner)
 app.get('/documents', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     if (user && user.role !== 'User') {
@@ -77,7 +77,7 @@ app.get('/logout', (req, res) => {
 
 // --- MANAGEMENT API ---
 
-// Promotion: Admins can make Users into Staff. Owners can make Staff into Admins.
+// Promotion Logic: Admins promote User -> Staff. Owners promote Staff -> Admin.
 app.post('/api/promote-user/:username', protect, async (req, res) => {
     try {
         const currentUser = await User.findOne({ username: req.session.username });
@@ -97,7 +97,7 @@ app.post('/api/promote-user/:username', protect, async (req, res) => {
     } catch (err) { res.status(500).send('Error'); }
 });
 
-// Demotion: Admins can demote Staff to User. Owners can demote Admins to Staff.
+// Demotion Logic: Admins demote Staff -> User. Owners demote Admin -> Staff.
 app.post('/api/demote-user/:username', protect, async (req, res) => {
     try {
         const currentUser = await User.findOne({ username: req.session.username });
@@ -117,12 +117,29 @@ app.post('/api/demote-user/:username', protect, async (req, res) => {
     } catch (err) { res.status(500).send('Error'); }
 });
 
+app.post('/api/ban-user/:username', protect, async (req, res) => {
+    try {
+        const currentUser = await User.findOne({ username: req.session.username });
+        const target = await User.findOne({ username: req.params.username });
+        if (!target || target.role === 'Owner') return res.sendStatus(403);
+
+        const canBan = currentUser.role === 'Owner' || 
+                      (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
+
+        if (canBan) {
+            target.isBanned = !target.isBanned;
+            await target.save();
+            res.sendStatus(200);
+        } else { res.sendStatus(403); }
+    } catch (err) { res.status(500).send('Error'); }
+});
+
 app.delete('/api/delete-user/:username', protect, async (req, res) => {
     try {
         const currentUser = await User.findOne({ username: req.session.username });
         const target = await User.findOne({ username: req.params.username });
         if (!target || target.role === 'Owner') return res.sendStatus(403);
-        
+
         if (currentUser.role === 'Owner' || (currentUser.role === 'Admin' && target.role !== 'Admin')) {
             await User.findOneAndDelete({ username: req.params.username });
             res.sendStatus(200);
@@ -154,7 +171,6 @@ app.post('/login', async (req, res) => {
         req.session.username = username;
         req.session.role = user.role;
         
-        // Admins/Owner to Management Panel, Staff/User to Dashboard
         if (user.role === 'Admin' || user.role === 'Owner') {
             res.redirect('/admin');
         } else {
