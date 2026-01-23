@@ -17,6 +17,7 @@ mongoose.connect(MONGODB_URI)
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    // Hierarchy: User < Staff < Admin < Management < Owner
     role: { type: String, enum: ['User', 'Staff', 'Admin', 'Management', 'Owner'], default: 'User' },
     isBanned: { type: Boolean, default: false }
 });
@@ -42,8 +43,11 @@ const protect = (req, res, next) => {
 };
 
 // --- PAGE ROUTES ---
+
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
+
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
 app.get('/documents', protect, async (req, res) => {
@@ -78,10 +82,11 @@ app.post('/api/promote-user/:username', protect, async (req, res) => {
         const target = await User.findOne({ username: req.params.username });
         if (!target) return res.status(404).send('User not found');
 
+        // Admin+ can make Staff | Management+ can make Admin | Owner can make Management
         if (target.role === 'User' && (['Owner', 'Management', 'Admin'].includes(currentUser.role))) {
             target.role = 'Staff';
         } else if (target.role === 'Staff' && (['Owner', 'Management'].includes(currentUser.role))) {
-            target.role = 'Admin'; // Management can now do this
+            target.role = 'Admin';
         } else if (target.role === 'Admin' && currentUser.role === 'Owner') {
             target.role = 'Management';
         } else {
@@ -101,7 +106,7 @@ app.post('/api/demote-user/:username', protect, async (req, res) => {
         if (target.role === 'Staff' && (['Owner', 'Management', 'Admin'].includes(currentUser.role))) {
             target.role = 'User';
         } else if (target.role === 'Admin' && (['Owner', 'Management'].includes(currentUser.role))) {
-            target.role = 'Staff'; // Management can now do this
+            target.role = 'Staff';
         } else if (target.role === 'Management' && currentUser.role === 'Owner') {
             target.role = 'Admin';
         } else {
@@ -148,6 +153,7 @@ app.delete('/api/delete-user/:username', protect, async (req, res) => {
 });
 
 // --- AUTHENTICATION ---
+
 app.post('/register', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -170,11 +176,9 @@ app.post('/login', async (req, res) => {
         req.session.username = username;
         req.session.role = user.role;
         
-        if (['Owner', 'Management', 'Admin'].includes(user.role)) {
-            res.redirect('/admin');
-        } else {
-            res.redirect('/dashboard');
-        }
+        // Everyone goes to the dashboard. 
+        // dashboard.html script handles showing/hiding the Admin Panel button.
+        res.redirect('/dashboard');
     } else {
         res.status(401).send('Invalid credentials.');
     }
