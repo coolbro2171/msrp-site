@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSRP | 2FA Verification</title>
+    <style>
+        body, html { height: 100%; margin: 0; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; background: #f4f7f6; }
+        .verify-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 20px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 1.2rem; text-align: center; letter-spacing: 4px; }
+        .btn { background: #007bff; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn:hover { background: #0069d9; }
+        p { color: #666; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<div class="verify-card">
+    <h1>2FA Required</h1>
+    <p>Open your Google Authenticator app and enter the 6-digit code for MSRP-Portal.</p>
+    
+    <input type="text" id="token" placeholder="000000" maxlength="6">
+    <button class="btn" onclick="verify()">Verify Identity</button>
+    <br><br>
+    <a href="/logout" style="color: #666; font-size: 0.8rem;">Cancel and Logout</a>
+</div>
+
+<script>
+    async function verify() {
+        const token = document.getElementById('token').value;
+        const res = await fetch('/api/login/2fa-verify', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ token })
+        });
+
+        if (res.ok) {
+            window.location.href = '/dashboard';
+        } else {
+            alert("Invalid or expired code.");
+        }
+    }
+</script>
+
+</body>
+</html>
