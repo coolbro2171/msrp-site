@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSRP | Internal Documents</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .docs-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        h1 { color: #333; margin: 0; font-size: 1.8rem; }
+
+        .nav-link {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .doc-section {
+            margin-bottom: 30px;
+        }
+
+        .doc-section h2 {
+            font-size: 1.2rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+
+        .doc-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .doc-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 15px 20px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: 0.2s;
+        }
+
+        .doc-item:hover {
+            border-color: #007bff;
+            background-color: #fff;
+        }
+
+        .doc-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .doc-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .doc-meta {
+            font-size: 0.8rem;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .btn-view {
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .btn-view:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+<div class="docs-container">
+    <div class="header">
+        <h1>Internal Documents</h1>
+        <a href="/dashboard" class="nav-link">← Return to Dashboard</a>
+    </div>
+
+    <div class="doc-section">
+        <h2>General Resources</h2>
+        <div class="doc-list">
+            <div class="doc-item">
+                <div class="doc-info">
+                    <span class="doc-name">MSRP Community Guidelines</span>
+                    <span class="doc-meta">Updated: Jan 2026 • PDF</span>
+                </div>
+                <a href="#" class="btn-view">View Document</a>
+            </div>
+            <div class="doc-item">
+                <div class="doc-info">
+                    <span class="doc-name">Server Rules & Regulations</span>
+                    <span class="doc-meta">Updated: Dec 2025 • PDF</span>
+                </div>
+                <a href="#" class="btn-view">View Document</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="doc-section">
+        <h2>Staff Resources</h2>
+        <div class="doc-list">
+            <div class="doc-item">
+                <div class="doc-info">
+                    <span class="doc-name">Staff Code of Conduct</span>
+                    <span class="doc-meta">Official Policy • Web Page</span>
+                </div>
+                <a href="#" class="btn-view">View Document</a>
+            </div>
+            <div class="doc-item">
+                <div class="doc-info">
+                    <span class="doc-name">Moderation Handbook</span>
+                    <span class="doc-meta">Admin Approved • PDF</span>
+                </div>
+                <a href="#" class="btn-view">View Document</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
