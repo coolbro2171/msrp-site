@@ -60,7 +60,6 @@ app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.h
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/settings', protect, (req, res) => res.sendFile(path.join(__dirname, 'settings.html')));
 app.get('/documents', protect, (req, res) => res.sendFile(path.join(__dirname, 'documents.html')));
-
 app.get('/2fa-verify', (req, res) => {
     if (!req.session.username || !req.session.needs2FA) return res.redirect('/');
     res.sendFile(path.join(__dirname, '2fa-verify.html'));
@@ -78,7 +77,6 @@ app.get('/admin', protect, async (req, res) => {
 
 // --- API ROUTES ---
 
-// This route is critical for the new locked sections in documents.html
 app.get('/api/me', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     res.json({ 
@@ -93,22 +91,26 @@ app.get('/api/users', protect, async (req, res) => {
     res.json(users);
 });
 
+// UPDATED: Flexible Promotion/Demotion Logic to fix the "Unauthorized" popup
 app.post('/api/promote-user/:username', protect, async (req, res) => {
     const currentUser = await User.findOne({ username: req.session.username });
     const target = await User.findOne({ username: req.params.username });
+    const { newRole } = req.body; 
+
     if (!target) return res.status(404).send('User not found');
 
-    if (target.role === 'User' && ['Owner', 'Management', 'Admin'].includes(currentUser.role)) {
-        target.role = 'Staff';
-    } else if (target.role === 'Staff' && ['Owner', 'Management'].includes(currentUser.role)) {
-        target.role = 'Admin';
-    } else if (target.role === 'Admin' && currentUser.role === 'Owner') {
-        target.role = 'Management';
-    } else {
-        return res.status(403).send('Unauthorized promotion.');
+    // Logic: Owner/Management can change any role. Admins can only promote Users to Staff.
+    const isOwnerOrMgt = ['Owner', 'Management'].includes(currentUser.role);
+    const isAdminPromotingToStaff = currentUser.role === 'Admin' && target.role === 'User' && newRole === 'Staff';
+    const isAdminDemotingStaff = currentUser.role === 'Admin' && target.role === 'Staff' && newRole === 'User';
+
+    if (isOwnerOrMgt || isAdminPromotingToStaff || isAdminDemotingStaff) {
+        target.role = newRole;
+        await target.save();
+        return res.sendStatus(200);
     }
-    await target.save();
-    res.sendStatus(200);
+
+    res.status(403).send('Unauthorized: Your rank is not high enough to perform this action.');
 });
 
 // --- 2FA & SETTINGS API ---
