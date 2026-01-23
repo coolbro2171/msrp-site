@@ -60,6 +60,7 @@ app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.h
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/settings', protect, (req, res) => res.sendFile(path.join(__dirname, 'settings.html')));
 app.get('/documents', protect, (req, res) => res.sendFile(path.join(__dirname, 'documents.html')));
+
 app.get('/2fa-verify', (req, res) => {
     if (!req.session.username || !req.session.needs2FA) return res.redirect('/');
     res.sendFile(path.join(__dirname, '2fa-verify.html'));
@@ -75,7 +76,7 @@ app.get('/admin', protect, async (req, res) => {
     }
 });
 
-// --- API ROUTES ---
+// --- API ROUTES (Staff Management) ---
 
 app.get('/api/me', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
@@ -91,15 +92,41 @@ app.get('/api/users', protect, async (req, res) => {
     res.json(users);
 });
 
-// UPDATED: Flexible Promotion/Demotion Logic to fix the "Unauthorized" popup
+// FIXED BAN/UNBAN ROUTE
+app.post('/api/ban-user/:username', protect, async (req, res) => {
+    const currentUser = await User.findOne({ username: req.session.username });
+    if (!['Owner', 'Management', 'Admin'].includes(currentUser.role)) return res.sendStatus(403);
+    
+    const target = await User.findOne({ username: req.params.username });
+    if (!target) return res.status(404).send('User not found');
+    if (target.role === 'Owner') return res.status(403).send('Cannot ban an Owner');
+
+    target.isBanned = req.body.isBanned;
+    await target.save();
+    res.sendStatus(200);
+});
+
+// FIXED DELETE USER ROUTE
+app.delete('/api/delete-user/:username', protect, async (req, res) => {
+    const currentUser = await User.findOne({ username: req.session.username });
+    if (!['Owner', 'Management'].includes(currentUser.role)) return res.sendStatus(403);
+    
+    const target = await User.findOne({ username: req.params.username });
+    if (target && target.role === 'Owner') return res.status(403).send('Cannot delete an Owner');
+
+    const result = await User.deleteOne({ username: req.params.username });
+    if (result.deletedCount === 1) res.sendStatus(200);
+    else res.status(404).send('User not found');
+});
+
 app.post('/api/promote-user/:username', protect, async (req, res) => {
     const currentUser = await User.findOne({ username: req.session.username });
     const target = await User.findOne({ username: req.params.username });
     const { newRole } = req.body; 
 
     if (!target) return res.status(404).send('User not found');
+    if (target.role === 'Owner') return res.status(403).send('Cannot modify Owner');
 
-    // Logic: Owner/Management can change any role. Admins can only promote Users to Staff.
     const isOwnerOrMgt = ['Owner', 'Management'].includes(currentUser.role);
     const isAdminPromotingToStaff = currentUser.role === 'Admin' && target.role === 'User' && newRole === 'Staff';
     const isAdminDemotingStaff = currentUser.role === 'Admin' && target.role === 'Staff' && newRole === 'User';
@@ -109,8 +136,7 @@ app.post('/api/promote-user/:username', protect, async (req, res) => {
         await target.save();
         return res.sendStatus(200);
     }
-
-    res.status(403).send('Unauthorized: Your rank is not high enough to perform this action.');
+    res.status(403).send('Unauthorized rank change.');
 });
 
 // --- 2FA & SETTINGS API ---
@@ -159,6 +185,12 @@ app.post('/register', async (req, res) => {
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await User.findOne({ username });
+    
+    // Safety check for Banned Users
+    if (user && user.isBanned) {
+        return res.status(403).send('This account is currently banned.');
+    }
+
     if (user && await bcrypt.compare(password, user.password)) {
         req.session.username = username;
         req.session.role = user.role;
