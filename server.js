@@ -25,7 +25,11 @@ const User = mongoose.model('User', userSchema);
 // --- MIDDLEWARE ---
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(express.static(__dirname));
+
+// IMPORTANT: These lines fix the "Cannot GET" errors by serving your static files
+app.use(express.static(__dirname)); 
+// This specific line fixes the "Cannot GET /files/guide.pdf" error
+app.use('/files', express.static(path.join(__dirname, 'files'))); 
 
 app.use(session({
     secret: 'secure-dev-key-789',
@@ -45,13 +49,13 @@ const protect = (req, res, next) => {
 // Main Login Page
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-// Fix for "Cannot GET /register"
+// Fixes image_02fc53.png ("Cannot GET /register")
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
 
-// Dashboard (Pending screen for Users, Documents link for Staff+)
+// Dashboard
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
-// Documents Route (Staff+)
+// Fixes image_028ade.png ("Not Found /documents")
 app.get('/documents', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     if (user && user.role !== 'User') {
@@ -67,32 +71,28 @@ app.get('/admin', protect, async (req, res) => {
     if (user && (user.role === 'Admin' || user.role === 'Owner')) {
         res.sendFile(path.join(__dirname, 'admin.html'));
     } else {
-        res.status(403).send('Unauthorized access. Admins only.');
+        res.status(403).send('Unauthorized access.');
     }
 });
 
-// Logout Route
+// Logout Fix
 app.get('/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/');
 });
 
-// --- MANAGEMENT API (PROMOTION PIPELINE) ---
+// --- MANAGEMENT API ---
 
+// Promotion Pipeline: User -> Staff -> Admin
 app.post('/api/promote-user/:username', protect, async (req, res) => {
     try {
         const currentUser = await User.findOne({ username: req.session.username });
         const target = await User.findOne({ username: req.params.username });
 
-        if (!target) return res.status(404).send('User not found');
-
-        // User -> Staff (Admin/Owner)
         if (target.role === 'User' && (currentUser.role === 'Owner' || currentUser.role === 'Admin')) {
             await User.findOneAndUpdate({ username: req.params.username }, { role: 'Staff' });
             res.sendStatus(200);
-        } 
-        // Staff -> Admin (Owner Only)
-        else if (target.role === 'Staff' && currentUser.role === 'Owner') {
+        } else if (target.role === 'Staff' && currentUser.role === 'Owner') {
             await User.findOneAndUpdate({ username: req.params.username }, { role: 'Admin' });
             res.sendStatus(200);
         } else {
@@ -101,28 +101,15 @@ app.post('/api/promote-user/:username', protect, async (req, res) => {
     } catch (err) { res.status(500).send('Error'); }
 });
 
-app.post('/api/demote-user/:username', protect, async (req, res) => {
-    if (req.session.role !== 'Owner') return res.sendStatus(403);
-    try {
-        const target = await User.findOne({ username: req.params.username });
-        const newRole = target.role === 'Admin' ? 'Staff' : 'User';
-        await User.findOneAndUpdate({ username: req.params.username }, { role: newRole });
-        res.sendStatus(200);
-    } catch (err) { res.status(500).send('Error'); }
-});
-
-app.post('/api/ban-user/:username', protect, async (req, res) => {
+// Fixes image_f7aa0f.png ("Deletion failed")
+app.delete('/api/delete-user/:username', protect, async (req, res) => {
     try {
         const currentUser = await User.findOne({ username: req.session.username });
         const target = await User.findOne({ username: req.params.username });
         if (!target || target.role === 'Owner') return res.sendStatus(403);
-
-        const canBan = currentUser.role === 'Owner' || 
-                      (currentUser.role === 'Admin' && (target.role === 'User' || target.role === 'Staff'));
-
-        if (canBan) {
-            target.isBanned = !target.isBanned;
-            await target.save();
+        
+        if (currentUser.role === 'Owner' || (currentUser.role === 'Admin' && target.role !== 'Admin')) {
+            await User.findOneAndDelete({ username: req.params.username });
             res.sendStatus(200);
         } else { res.sendStatus(403); }
     } catch (err) { res.status(500).send('Error'); }
@@ -152,7 +139,7 @@ app.post('/login', async (req, res) => {
         req.session.username = username;
         req.session.role = user.role;
         
-        // REDIRECT FIX: Admin/Owner to Admin Panel, Staff/User to Dashboard
+        // REDIRECT FIX: Send Staff to Dashboard, Admins/Owner to Admin Panel
         if (user.role === 'Admin' || user.role === 'Owner') {
             res.redirect('/admin');
         } else {
@@ -172,4 +159,4 @@ app.get('/api/me', protect, (req, res) => {
     res.json({ username: req.session.username, role: req.session.role });
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("Server Live"));
+app.listen(process.env.PORT || 3000, () => console.log("Server Live on Port 3000"));
