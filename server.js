@@ -51,7 +51,7 @@ app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.h
 // Dashboard (Pending screen for Users, Documents link for Staff+)
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 
-// Fix for "Not Found /documents"
+// Documents Route (Staff+)
 app.get('/documents', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     if (user && user.role !== 'User') {
@@ -71,7 +71,7 @@ app.get('/admin', protect, async (req, res) => {
     }
 });
 
-// Logout Fix
+// Logout Route
 app.get('/logout', (req, res) => {
     req.session.destroy();
     res.redirect('/');
@@ -79,7 +79,6 @@ app.get('/logout', (req, res) => {
 
 // --- MANAGEMENT API (PROMOTION PIPELINE) ---
 
-// Path: User -> Staff -> Admin
 app.post('/api/promote-user/:username', protect, async (req, res) => {
     try {
         const currentUser = await User.findOne({ username: req.session.username });
@@ -87,12 +86,12 @@ app.post('/api/promote-user/:username', protect, async (req, res) => {
 
         if (!target) return res.status(404).send('User not found');
 
-        // Step 1: User to Staff (Admins and Owners can do this)
+        // User -> Staff (Admin/Owner)
         if (target.role === 'User' && (currentUser.role === 'Owner' || currentUser.role === 'Admin')) {
             await User.findOneAndUpdate({ username: req.params.username }, { role: 'Staff' });
             res.sendStatus(200);
         } 
-        // Step 2: Staff to Admin (Only the Owner can do this)
+        // Staff -> Admin (Owner Only)
         else if (target.role === 'Staff' && currentUser.role === 'Owner') {
             await User.findOneAndUpdate({ username: req.params.username }, { role: 'Admin' });
             res.sendStatus(200);
@@ -153,7 +152,7 @@ app.post('/login', async (req, res) => {
         req.session.username = username;
         req.session.role = user.role;
         
-        // REDIRECT FIX: Send Staff to Dashboard, Admins/Owner to Admin Panel
+        // REDIRECT FIX: Admin/Owner to Admin Panel, Staff/User to Dashboard
         if (user.role === 'Admin' || user.role === 'Owner') {
             res.redirect('/admin');
         } else {
