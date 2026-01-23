@@ -37,7 +37,6 @@
             overflow: hidden;
         }
 
-        /* Sidebar Styling */
         .sidebar {
             background: white;
             padding: 20px;
@@ -54,6 +53,9 @@
             margin: 20px 0 10px 0;
         }
 
+        /* Hidden by default until role is verified */
+        .locked-section { display: none; }
+
         .doc-item {
             background: #f8f9fa;
             border: 1px solid #e9ecef;
@@ -65,7 +67,6 @@
             display: block;
             text-align: left;
             width: 100%;
-            border: none;
             font-family: inherit;
         }
 
@@ -86,9 +87,8 @@
             color: #777;
         }
 
-        /* Viewer Styling */
         .viewer-container {
-            background: #333; /* Dark background like a PDF viewer */
+            background: #333;
             border-radius: 12px;
             overflow: hidden;
             display: flex;
@@ -155,6 +155,22 @@
                 <span class="doc-meta">Google Document</span>
             </button>
         </div>
+
+        <div class="doc-section locked-section" id="admin-section">
+            <h2>Admin+ Restricted</h2>
+            <button class="doc-item" onclick="viewDoc('#')">
+                <span class="doc-name">Admin Protocols</span>
+                <span class="doc-meta">Confidential</span>
+            </button>
+        </div>
+
+        <div class="doc-section locked-section" id="management-section">
+            <h2>Management+ Restricted</h2>
+            <button class="doc-item" onclick="viewDoc('#')">
+                <span class="doc-name">Management Ledger</span>
+                <span class="doc-meta">Internal Eyes Only</span>
+            </button>
+        </div>
     </div>
 
     <div class="viewer-container" id="viewer-container">
@@ -169,16 +185,38 @@
 
 <script>
     function viewDoc(url) {
+        if(url === '#') {
+            alert('This document link has not been set yet.');
+            return;
+        }
         const viewer = document.getElementById('doc-viewer');
         const placeholder = document.getElementById('placeholder');
-        
-        // Hide placeholder, show iframe
         placeholder.style.display = 'none';
         viewer.style.display = 'block';
-        
-        // Set the source of the iframe
         viewer.src = url;
     }
+
+    // Role-based visibility logic
+    async function checkAccess() {
+        try {
+            const response = await fetch('/api/me');
+            const user = await response.json();
+            
+            const adminRoles = ['Admin', 'Management', 'Owner'];
+            const managementRoles = ['Management', 'Owner'];
+
+            if (adminRoles.includes(user.role)) {
+                document.getElementById('admin-section').style.display = 'block';
+            }
+            if (managementRoles.includes(user.role)) {
+                document.getElementById('management-section').style.display = 'block';
+            }
+        } catch (err) {
+            console.error("Failed to verify role access.");
+        }
+    }
+
+    checkAccess();
 </script>
 
 </body>
