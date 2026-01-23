@@ -3,75 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Account</title>
+    <title>MSRP | Join Us</title>
     <style>
-        body { 
-            font-family: sans-serif; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            background-color: #f4f4f4; 
-            margin: 0; 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            background: url('https://mwskpndfresmcrvjyodr.supabase.co/storage/v1/object/public/user_uploads/6791986427d11f0037a3c333/145a3059-e91b-426b-9516-7d19c3666d99') no-repeat center center fixed;
+            background-size: cover;
         }
-        .register-box { 
-            background: white; 
-            padding: 30px; 
-            border-radius: 10px; 
-            box-shadow: 0px 0px 10px rgba(0,0,0,0.1); 
-            width: 320px; 
+
+        /* Background Blur Overlay */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.35); 
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 1;
+        }
+
+        .register-container {
+            background: rgba(255, 255, 255, 0.92);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 380px;
             text-align: center;
+            position: relative;
+            z-index: 2;
         }
-        input { 
-            width: 100%; 
-            padding: 12px; 
-            margin: 10px 0; 
-            border: 1px solid #ccc; 
-            border-radius: 5px; 
-            box-sizing: border-box; 
+
+        h2 { color: #333; margin-bottom: 25px; }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
         }
-        .btn-green { 
-            width: 100%; 
-            padding: 12px; 
-            background-color: #28a745; 
-            color: white; 
-            border: none; 
-            border-radius: 5px; 
-            cursor: pointer; 
-            font-size: 16px;
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        button:hover { background-color: #218838; }
+
+        .link-text {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .link-text a {
+            color: #28a745;
+            text-decoration: none;
             font-weight: bold;
         }
-        .btn-blue { 
-            display: block;
-            width: 100%; 
-            padding: 12px; 
-            background-color: #007bff; 
-            color: white; 
-            text-decoration: none;
-            border-radius: 5px; 
-            margin-top: 15px;
-            box-sizing: border-box;
-            font-size: 14px;
-        }
-        hr { margin: 20px 0; border: 0; border-top: 1px solid #eee; }
     </style>
 </head>
 <body>
 
-    <div class="register-box">
-        <h2>Create Account</h2>
-        
-        <form action="/register" method="POST">
-            <input type="text" name="username" placeholder="Choose Username" required>
-            <input type="password" name="password" placeholder="Choose Password" required>
-            <button type="submit" class="btn-green">Register Account</button>
-        </form>
-
-        <hr>
-
-        <p style="font-size: 12px; color: #666;">Already have an account?</p>
-        <a href="/" class="btn-blue">Back to Login</a>
+<div class="register-container">
+    <h2>Create Account</h2>
+    <form action="/register" method="POST">
+        <input type="text" name="username" placeholder="Choose Username" required>
+        <input type="password" name="password" placeholder="Choose Password" required>
+        <button type="submit">Register</button>
+    </form>
+    <div class="link-text">
+        Already have an account? <a href="/">Login here</a>
     </div>
+</div>
 
 </body>
 </html>
