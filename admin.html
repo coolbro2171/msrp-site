@@ -3,26 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Control Panel</title>
+    <title>MSRP | Admin Portal</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            display: flex;
-            justify-content: center;
-            padding: 40px;
+        :root {
+            --primary: #007bff;
+            --danger: #dc3545;
+            --success: #28a745;
+            --warning: #fd7e14;
+            --dark: #343a40;
+            --light: #f8f9fa;
         }
 
-        .admin-container {
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e9ecef;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
             background: white;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            width: 100%;
-            max-width: 1100px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
-        h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        h1 { margin: 0; color: var(--dark); }
+
+        .auth-info { font-size: 0.9rem; color: #666; }
 
         table {
             width: 100%;
@@ -30,183 +49,170 @@
             margin-top: 20px;
         }
 
-        th, td {
-            padding: 15px;
+        th {
+            background-color: var(--light);
             text-align: left;
-            border-bottom: 1px solid #eee;
+            padding: 12px;
+            border-bottom: 2px solid #dee2e6;
+            color: #495057;
         }
 
-        th { background-color: #f8f9fa; color: #666; }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: middle;
+        }
 
-        /* Role Badge Styling */
-        .role-badge {
-            padding: 4px 10px;
+        .badge {
+            padding: 4px 8px;
             border-radius: 4px;
             font-size: 0.75rem;
             font-weight: bold;
             text-transform: uppercase;
-            color: white;
         }
 
-        .role-owner { background-color: #dc3545; } /* Red */
-        .role-admin { background-color: #28a745; } /* Green */
-        .role-staff { background-color: #007bff; } /* Blue */
-        .role-user  { background-color: #6c757d; } /* Gray */
+        .badge-owner { background: var(--danger); color: white; }
+        .badge-admin { background: var(--success); color: white; }
+        .badge-staff { background: var(--primary); color: white; }
+        .badge-user { background: #6c757d; color: white; }
+        .badge-banned { background: #000; color: white; }
 
-        .status-banned {
-            background-color: #000;
-            color: #ff4d4d;
-            border: 1px solid #ff4d4d;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            margin-left: 10px;
-        }
-
-        /* Button Styling */
-        button {
+        .btn {
             padding: 6px 12px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 0.85rem;
+            font-weight: 600;
             margin-right: 5px;
             transition: 0.2s;
-            margin-bottom: 5px;
-            color: white;
         }
 
-        .btn-promote-staff { background-color: #007bff; }
-        .btn-promote-admin { background-color: #28a745; }
-        .btn-demote { background-color: #fd7e14; }
-        .btn-ban { background-color: #6f42c1; }
-        .btn-delete { background-color: #dc3545; }
-        
-        button:hover { opacity: 0.8; }
+        .btn-promote { background: var(--success); color: white; }
+        .btn-demote { background: var(--warning); color: white; }
+        .btn-ban { background: var(--dark); color: white; }
+        .btn-delete { background: var(--danger); color: white; }
+        .btn-nav { background: var(--primary); color: white; text-decoration: none; display: inline-block; }
 
-        .nav { margin-bottom: 20px; text-align: right; }
-        .nav a { text-decoration: none; color: #007bff; margin-left: 15px; font-weight: bold; }
+        .btn:hover { opacity: 0.85; }
     </style>
 </head>
 <body>
 
-<div class="admin-container">
-    <div class="nav">
-        <a href="/dashboard">Dashboard</a>
-        <a href="/logout">Logout</a>
-    </div>
-
-    <h2>User Management</h2>
-    <p id="welcome-msg">Verifying Authority...</p>
+<div class="container">
+    <header>
+        <div>
+            <h1>User Management</h1>
+            <div id="auth-banner" class="auth-info">Loading session...</div>
+        </div>
+        <nav>
+            <a href="/dashboard" class="btn btn-nav">Dashboard</a>
+            <a href="/logout" class="btn btn-ban">Logout</a>
+        </nav>
+    </header>
 
     <table>
         <thead>
             <tr>
                 <th>Username</th>
                 <th>Current Role</th>
+                <th>Status</th>
                 <th>Actions</th>
             </tr>
         </thead>
-        <tbody id="userTable">
+        <tbody id="user-table-body">
             </tbody>
     </table>
 </div>
 
 <script>
-    async function loadUsers() {
-        try {
-            const meRes = await fetch('/api/me');
-            const me = await meRes.json();
+    let myRole = '';
+    let myName = '';
+
+    async function init() {
+        const res = await fetch('/api/me');
+        const data = await res.json();
+        myRole = data.role;
+        myName = data.username;
+        document.getElementById('auth-banner').innerText = `Authorized: ${myName} (${myRole})`;
+        fetchUsers();
+    }
+
+    async function fetchUsers() {
+        const res = await fetch('/api/users');
+        const users = await res.json();
+        const tbody = document.getElementById('user-table-body');
+        tbody.innerHTML = '';
+
+        users.forEach(user => {
+            if (user.username === myName) return; // Hide self from management
+
+            const row = document.createElement('tr');
             
-            document.getElementById('welcome-msg').innerText = 
-                `Authorized: ${me.username} (${me.role})`;
-
-            const res = await fetch('/api/users');
-            const users = await res.json();
+            // Status Logic
+            const statusLabel = user.isBanned ? '<span class="badge badge-banned">Banned</span>' : '<span class="badge badge-success">Active</span>';
             
-            const tableBody = document.getElementById('userTable');
-            tableBody.innerHTML = '';
+            // Role Badge Logic
+            const roleClass = `badge-${user.role.toLowerCase()}`;
+            const roleBadge = `<span class="badge ${roleClass}">${user.role}</span>`;
 
-            users.forEach(user => {
-                const row = document.createElement('tr');
-                const roleClass = `role-${user.role.toLowerCase()}`;
-                const bannedLabel = user.isBanned ? '<span class="status-banned">BANNED</span>' : '';
+            // Action Button Logic
+            let actionsHtml = '';
 
-                row.innerHTML = `
-                    <td>${user.username} ${bannedLabel}</td>
-                    <td><span class="role-badge ${roleClass}">${user.role}</span></td>
-                    <td>${renderActions(user, me)}</td>
-                `;
-                tableBody.appendChild(row);
-            });
-        } catch (err) {
-            console.error('Error loading management console:', err);
-        }
-    }
-
-    function renderActions(targetUser, currentUser) {
-        if (targetUser.role === 'Owner') return '<em>Primary Account</em>';
-
-        let html = '';
-
-        // 1. PROMOTION PIPELINE
-        if (targetUser.role === 'User') {
-            // Admins and Owners can promote Members to Staff
-            if (currentUser.role === 'Owner' || currentUser.role === 'Admin') {
-                html += `<button class="btn-promote-staff" onclick="updateRole('${targetUser.username}', 'promote')">Promote to Staff</button>`;
+            // 1. Promotion Buttons
+            if (user.role === 'User' && (myRole === 'Admin' || myRole === 'Owner')) {
+                actionsHtml += `<button class="btn btn-promote" onclick="manageUser('promote', '${user.username}')">Promote to Staff</button>`;
+            } else if (user.role === 'Staff' && myRole === 'Owner') {
+                actionsHtml += `<button class="btn btn-promote" onclick="manageUser('promote', '${user.username}')">Promote to Admin</button>`;
             }
-        } else if (targetUser.role === 'Staff') {
-            // ONLY Owner can promote Staff to Admin
-            if (currentUser.role === 'Owner') {
-                html += `<button class="btn-promote-admin" onclick="updateRole('${targetUser.username}', 'promote')">Promote to Admin</button>`;
+
+            // 2. Demotion Buttons
+            if (user.role === 'Staff' && (myRole === 'Admin' || myRole === 'Owner')) {
+                actionsHtml += `<button class="btn btn-demote" onclick="manageUser('demote', '${user.username}')">Demote to Member</button>`;
+            } else if (user.role === 'Admin' && myRole === 'Owner') {
+                actionsHtml += `<button class="btn btn-demote" onclick="manageUser('demote', '${user.username}')">Demote to Staff</button>`;
             }
-        }
 
-        // 2. DEMOTION PIPELINE (Owner Only)
-        if (currentUser.role === 'Owner') {
-            if (targetUser.role === 'Admin') {
-                html += `<button class="btn-demote" onclick="updateRole('${targetUser.username}', 'demote')">Demote to Staff</button>`;
-            } else if (targetUser.role === 'Staff') {
-                html += `<button class="btn-demote" onclick="updateRole('${targetUser.username}', 'demote')">Demote to Member</button>`;
+            // 3. Ban/Delete (Admins can ban Users/Staff, Owners can ban anyone but self)
+            const canManage = myRole === 'Owner' || (myRole === 'Admin' && (user.role === 'User' || user.role === 'Staff'));
+            
+            if (canManage && user.role !== 'Owner') {
+                actionsHtml += `<button class="btn btn-ban" onclick="manageUser('ban', '${user.username}')">${user.isBanned ? 'Unban' : 'Ban'}</button>`;
+                actionsHtml += `<button class="btn btn-delete" onclick="manageUser('delete', '${user.username}')">Delete</button>`;
             }
+
+            row.innerHTML = `
+                <td><strong>${user.username}</strong></td>
+                <td>${roleBadge}</td>
+                <td>${statusLabel}</td>
+                <td>${actionsHtml}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    async function manageUser(action, username) {
+        let url = '';
+        let method = 'POST';
+
+        if (action === 'promote') url = `/api/promote-user/${username}`;
+        if (action === 'demote') url = `/api/demote-user/${username}`;
+        if (action === 'ban') url = `/api/ban-user/${username}`;
+        if (action === 'delete') {
+            url = `/api/delete-user/${username}`;
+            method = 'DELETE';
+            if (!confirm(`Are you sure you want to delete ${username}?`)) return;
         }
 
-        // 3. MODERATION (Ban/Delete)
-        const canModerate = currentUser.role === 'Owner' || 
-                           (currentUser.role === 'Admin' && (targetUser.role === 'User' || targetUser.role === 'Staff'));
-
-        if (canModerate) {
-            const banActionText = targetUser.isBanned ? 'Unban' : 'Ban';
-            html += `<button class="btn-ban" onclick="toggleBan('${targetUser.username}')">${banActionText}</button>`;
-            html += `<button class="btn-delete" onclick="deleteUser('${targetUser.username}')">Delete</button>`;
+        const res = await fetch(url, { method: method });
+        if (res.ok) {
+            fetchUsers();
+        } else {
+            alert(`Action failed: ${action.toUpperCase()} not authorized or user not found.`);
         }
-
-        return html || '<em>No Actions Permitted</em>';
     }
 
-    async function updateRole(username, action) {
-        if (!confirm(`Are you sure you want to ${action} ${username}?`)) return;
-        const endpoint = action === 'promote' ? `/api/promote-user/${username}` : `/api/demote-user/${username}`;
-        const res = await fetch(endpoint, { method: 'POST' });
-        if (res.ok) loadUsers();
-        else alert('Action denied by server.');
-    }
-
-    async function toggleBan(username) {
-        if (!confirm(`Toggle ban for ${username}?`)) return;
-        const res = await fetch(`/api/ban-user/${username}`, { method: 'POST' });
-        if (res.ok) loadUsers();
-        else alert('Failed to toggle ban status.');
-    }
-
-    async function deleteUser(username) {
-        if (!confirm(`Permanently delete ${username}?`)) return;
-        const res = await fetch(`/api/delete-user/${username}`, { method: 'DELETE' });
-        if (res.ok) loadUsers();
-        else alert('Deletion failed.');
-    }
-
-    loadUsers();
+    init();
 </script>
 
 </body>
