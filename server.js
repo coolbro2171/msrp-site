@@ -41,7 +41,7 @@ app.use(session({
     cookie: { maxAge: 3600000, sameSite: 'lax', secure: false }
 }));
 
-// --- KEEP-ALIVE ROUTE ---
+// --- CRON-JOB PING ROUTE ---
 app.get('/ping', (req, res) => res.status(200).send('Server is awake'));
 
 const protect = (req, res, next) => {
@@ -54,8 +54,12 @@ const protect = (req, res, next) => {
     }
 };
 
-// --- PAGE ROUTES ---
+// --- PAGE ROUTES (FIXING "CANNOT GET" ERRORS) ---
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
+// Fix for "Cannot GET /register"
+app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
+
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/settings', protect, (req, res) => res.sendFile(path.join(__dirname, 'settings.html')));
 app.get('/2fa-verify', (req, res) => {
@@ -63,7 +67,7 @@ app.get('/2fa-verify', (req, res) => {
     res.sendFile(path.join(__dirname, '2fa-verify.html'));
 });
 
-// FIX: Added missing Admin Panel route
+// Fix for "Cannot GET /admin"
 app.get('/admin', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     const hasAccess = user && ['Owner', 'Management', 'Admin'].includes(user.role);
@@ -74,6 +78,7 @@ app.get('/admin', protect, async (req, res) => {
     }
 });
 
+// Fix for "Cannot GET /documents"
 app.get('/documents', protect, async (req, res) => {
     const user = await User.findOne({ username: req.session.username });
     if (user && user.role !== 'User') {
@@ -98,26 +103,7 @@ app.get('/api/users', protect, async (req, res) => {
     res.json(users);
 });
 
-// Promotion Logic
-app.post('/api/promote-user/:username', protect, async (req, res) => {
-    const currentUser = await User.findOne({ username: req.session.username });
-    const target = await User.findOne({ username: req.params.username });
-    if (!target) return res.status(404).send('User not found');
-
-    if (target.role === 'User' && ['Owner', 'Management', 'Admin'].includes(currentUser.role)) {
-        target.role = 'Staff';
-    } else if (target.role === 'Staff' && ['Owner', 'Management'].includes(currentUser.role)) {
-        target.role = 'Admin';
-    } else if (target.role === 'Admin' && currentUser.role === 'Owner') {
-        target.role = 'Management';
-    } else {
-        return res.status(403).send('Unauthorized promotion.');
-    }
-    await target.save();
-    res.sendStatus(200);
-});
-
-// 2FA & Login Logic
+// --- 2FA & SETTINGS API ---
 app.post('/api/settings/2fa/setup', protect, async (req, res) => {
     const secret = authenticator.generateSecret();
     const otpauth = authenticator.keyuri(req.session.username, 'MSRP-Portal', secret);
@@ -148,11 +134,24 @@ app.post('/api/settings/2fa/disable', protect, async (req, res) => {
     res.send("2FA Disabled.");
 });
 
+// --- AUTHENTICATION LOGIC ---
+app.post('/register', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const count = await User.countDocuments();
+        const role = count === 0 ? 'Owner' : 'User';
+        await new User({ username, password: hashedPassword, role }).save();
+        res.redirect('/');
+    } catch (err) { res.status(500).send('Registration failed.'); }
+});
+
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await User.findOne({ username });
     if (user && await bcrypt.compare(password, user.password)) {
         req.session.username = username;
+        req.session.role = user.role;
         if (user.twoFactorEnabled) {
             req.session.needs2FA = true;
             return res.redirect('/2fa-verify');
