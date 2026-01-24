@@ -19,26 +19,26 @@
             position: relative; z-index: 1; max-height: 85vh; overflow-y: auto;
         }
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
-        .center-text { text-align: center; }
         table { width: 100%; border-collapse: collapse; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f8f9fa; color: #555; font-size: 0.9rem; text-transform: uppercase; }
-        
-        /* Button Styles */
-        .btn { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem; transition: 0.2s; margin-right: 5px; min-width: 140px; }
+        th { background: #f4f4f4; font-size: 0.85rem; text-transform: uppercase; color: #666; }
+
+        /* Buttons */
+        .btn { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem; transition: 0.2s; margin-right: 5px; min-width: 150px; }
         .btn-promote { background: #28a745; color: white; }
         .btn-demote { background: #ffa502; color: white; }
         .btn-ban { background: #333; color: white; min-width: 80px; }
         .btn-delete { background: #dc3545; color: white; min-width: 80px; }
         .btn-back { background: #007bff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; }
         
-        /* Badge Styles */
+        /* Badges & Roles */
         .role-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; color: white; }
         .role-owner { background: #ff4757; } .role-management { background: #ffa502; } .role-admin { background: #5352ed; } .role-staff { background: #2ed573; } .role-user { background: #747d8c; }
         
-        .badge-dev { background: #00d2ff; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
-        .badge-bum { background: #a52a2a; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
-        .no-badges { color: #ccc; font-size: 0.75rem; font-style: italic; }
+        .badge-dev { background: #00d2ff; color: white; padding: 3px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-right: 4px; }
+        .badge-bum { background: #a52a2a; color: black; padding: 3px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-right: 4px; }
+        
+        .no-badges { color: #bbb; font-style: italic; font-size: 0.75rem; }
         .no-actions { color: #888; font-style: italic; font-weight: bold; font-size: 0.85rem; }
     </style>
 </head>
@@ -48,7 +48,7 @@
 <div class="container">
     <div class="header">
         <h1>Staff Management</h1>
-        <a href="/dashboard" class="btn-back">← Return to Dashboard</a>
+        <a href="/dashboard" class="btn-back">← Back</a>
     </div>
     <table id="user-table">
         <thead>
@@ -62,76 +62,75 @@
         </thead>
         <tbody id="user-list"></tbody>
     </table>
-    <p class="center-text">Website Made and Managed by the MSRP Development Team</p>
 </div>
 
 <script>
     async function loadUsers() {
-        const res = await fetch('/api/users');
-        const users = await res.json();
-        const list = document.getElementById('user-list');
-        list.innerHTML = '';
-        
-        users.forEach(user => {
-            let actionHTML = "";
-            let badgeHTML = "";
+        try {
+            const res = await fetch('/api/users');
+            if (!res.ok) throw new Error("API Connection Error");
+            const users = await res.json();
+            const list = document.getElementById('user-list');
+            list.innerHTML = '';
+            
+            users.forEach(user => {
+                let badgeHTML = "";
+                // Logic for Badge Display
+                if (user.isDeveloper) badgeHTML += `<span class="badge-dev">DEVELOPER</span>`;
+                if (user.isBum) badgeHTML += `<span class="badge-bum">BUM</span>`;
+                if (badgeHTML === "") badgeHTML = `<span class="no-badges">No Badges</span>`;
 
-            // 1. Generate Badges Column Content
-            if (user.isDeveloper) {
-                badgeHTML += `<span class="badge-dev">DEVELOPER</span> `;
-            }
-            if (user.isBum) {
-                badgeHTML += `<span class="badge-bum">BUM</span> `;
-            // If no badges exist, show placeholder
-            if (badgeHTML === "") {
-                badgeHTML = `<span class="no-badges">No Badges</span>`;
-            }
+                let actionHTML = "";
+                // Protect Owners and define dynamic text for others
+                if (user.role === 'Owner') {
+                    actionHTML = `<span class="no-actions">No Actions Available</span>`;
+                } else {
+                    let promoteText = "";
+                    let nextRole = "";
+                    let demoteText = "";
+                    let prevRole = "";
 
-            // 2. Logic for Action Buttons
-            if (user.role === 'Owner') {
-                actionHTML = `<span class="no-actions">No Actions Available</span>`;
-            } else {
-                let promoteText = "";
-                let nextRole = "";
-                let demoteText = "";
-                let prevRole = "";
+                    // Custom Labeling System
+                    if (user.role === 'User') {
+                        promoteText = "Promote to Staff";
+                        nextRole = "Staff";
+                    } else if (user.role === 'Staff') {
+                        promoteText = "Promote to Admin";
+                        nextRole = "Admin";
+                        demoteText = "Demote to User";
+                        prevRole = "User";
+                    } else if (user.role === 'Admin') {
+                        promoteText = "Promote to Management";
+                        nextRole = "Management";
+                        demoteText = "Demote to Staff";
+                        prevRole = "Staff";
+                    } else if (user.role === 'Management') {
+                        demoteText = "Demote to Admin";
+                        prevRole = "Admin";
+                    }
 
-                if (user.role === 'User') {
-                    promoteText = "Promote to Staff";
-                    nextRole = "Staff";
-                } else if (user.role === 'Staff') {
-                    promoteText = "Promote to Admin";
-                    nextRole = "Admin";
-                    demoteText = "Demote to User";
-                    prevRole = "User";
-                } else if (user.role === 'Admin') {
-                    promoteText = "Promote to Management";
-                    nextRole = "Management";
-                    demoteText = "Demote to Staff";
-                    prevRole = "Staff";
-                } else if (user.role === 'Management') {
-                    demoteText = "Demote to Admin";
-                    prevRole = "Admin";
+                    actionHTML = `
+                        ${promoteText ? `<button class="btn btn-promote" onclick="updateRole('${user.username}', '${nextRole}')">${promoteText}</button>` : ''}
+                        ${demoteText ? `<button class="btn btn-demote" onclick="updateRole('${user.username}', '${prevRole}')">${demoteText}</button>` : ''}
+                        <button class="btn btn-ban" onclick="toggleBan('${user.username}', ${!user.isBanned})">${user.isBanned ? 'Unban' : 'Ban'}</button>
+                        <button class="btn btn-delete" onclick="deleteAccount('${user.username}')">Delete</button>
+                    `;
                 }
 
-                actionHTML = `
-                    ${promoteText ? `<button class="btn btn-promote" onclick="updateRole('${user.username}', '${nextRole}')">${promoteText}</button>` : ''}
-                    ${demoteText ? `<button class="btn btn-demote" onclick="updateRole('${user.username}', '${prevRole}')">${demoteText}</button>` : ''}
-                    <button class="btn btn-ban" onclick="toggleBan('${user.username}', ${!user.isBanned})">${user.isBanned ? 'Unban' : 'Ban'}</button>
-                    <button class="btn btn-delete" onclick="deleteAccount('${user.username}')">Delete</button>
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${user.username}</strong></td>
+                    <td><span class="role-badge role-${user.role.toLowerCase()}">${user.role}</span></td>
+                    <td>${badgeHTML}</td>
+                    <td>${user.isBanned ? '<b style="color:red">BANNED</b>' : 'Active'}</td>
+                    <td>${actionHTML}</td>
                 `;
-            }
-
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td><strong>${user.username}</strong></td>
-                <td><span class="role-badge role-${user.role.toLowerCase()}">${user.role}</span></td>
-                <td>${badgeHTML}</td>
-                <td>${user.isBanned ? '<b style="color:red">BANNED</b>' : 'Active'}</td>
-                <td>${actionHTML}</td>
-            `;
-            list.appendChild(row);
-        });
+                list.appendChild(row);
+            });
+        } catch (err) {
+            console.error("Admin Load Error:", err);
+            document.getElementById('user-list').innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">Failed to load user data. Check server console.</td></tr>`;
+        }
     }
 
     async function updateRole(username, newRole) {
@@ -141,11 +140,11 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ newRole })
         });
-        if (res.ok) loadUsers(); else alert("Unauthorized or Error");
+        if (res.ok) loadUsers(); else alert("Action Failed: Check Permissions");
     }
 
     async function toggleBan(username, shouldBan) {
-        if (!confirm(`Are you sure you want to ${shouldBan ? 'BAN' : 'UNBAN'} ${username}?`)) return;
+        if (!confirm(`Confirm ${shouldBan ? 'BAN' : 'UNBAN'} for ${username}?`)) return;
         const res = await fetch(`/api/ban-user/${username}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
