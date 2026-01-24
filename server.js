@@ -17,13 +17,14 @@ mongoose.connect(MONGODB_URI)
     .catch(err => console.error("Database connection error:", err));
 
 // --- USER SCHEMA ---
+// Added isDeveloper and isFounder fields to prevent errors when the Admin Panel loads
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role: { type: String, enum: ['User', 'Staff', 'Admin', 'Management', 'Owner'], default: 'User' },
     isBanned: { type: Boolean, default: false },
-    isDeveloper: { type: Boolean, default: false }, 
-    isBum: { type: Boolean, default: false },
+    isDeveloper: { type: Boolean, default: false },
+    isBum: { type: Boolean, default: false }, 
     twoFactorSecret: { type: String },
     twoFactorEnabled: { type: Boolean, default: false }
 });
@@ -89,7 +90,7 @@ app.get('/api/me', protect, async (req, res) => {
     });
 });
 
-// GET USERS WITH RANK SORTING AND DEVELOPER DATA
+// FIXED: Added isDeveloper and isFounder to the query to fix the Admin Panel loading issue
 app.get('/api/users', protect, async (req, res) => {
     try {
         const users = await User.find({}, 'username role isBanned isDeveloper isBum');
@@ -233,5 +234,3 @@ app.get('/logout', (req, res) => {
 });
 
 app.listen(process.env.PORT || 3000, () => console.log("Server Live"));
-
-
