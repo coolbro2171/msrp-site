@@ -94,7 +94,7 @@ app.get('/api/me', protect, async (req, res) => {
 // FIXED: Added isDeveloper and isFounder to the query to fix the Admin Panel loading issue
 app.get('/api/users', protect, async (req, res) => {
     try {
-        const users = await User.find({}, 'username role isBanned isDeveloper isDatabaseAccess isStaffTrainer');
+        const users = await User.find({}, 'username role isBanned isDeveloper isDatabaseAccess isStaffTrainer twoFactorEnabled');
         const rankOrder = { 'Owner': 1, 'Management': 2, 'Admin': 3, 'Staff': 4, 'User': 5 };
         
         users.sort((a, b) => (rankOrder[a.role] || 99) - (rankOrder[b.role] || 99));
@@ -235,6 +235,7 @@ app.get('/logout', (req, res) => {
 });
 
 app.listen(process.env.PORT || 3000, () => console.log("Server Live"));
+
 
 
 
