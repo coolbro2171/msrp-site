@@ -23,6 +23,7 @@ const userSchema = new mongoose.Schema({
     role: { type: String, enum: ['User', 'Staff', 'Admin', 'Management', 'Owner'], default: 'User' },
     isBanned: { type: Boolean, default: false },
     isDeveloper: { type: Boolean, default: false }, 
+    isBum: { type: Boolean, default: false },
     twoFactorSecret: { type: String },
     twoFactorEnabled: { type: Boolean, default: false }
 });
@@ -232,3 +233,4 @@ app.get('/logout', (req, res) => {
 });
 
 app.listen(process.env.PORT || 3000, () => console.log("Server Live"));
+
