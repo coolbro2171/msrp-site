@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
     role: { type: String, enum: ['User', 'Staff', 'Admin', 'Management', 'Owner'], default: 'User' },
     isBanned: { type: Boolean, default: false },
+    isDeveloper: { type: Boolean, default: false }, 
     twoFactorSecret: { type: String },
     twoFactorEnabled: { type: Boolean, default: false }
 });
@@ -87,10 +88,10 @@ app.get('/api/me', protect, async (req, res) => {
     });
 });
 
-// GET USERS WITH RANK SORTING
+// GET USERS WITH RANK SORTING AND DEVELOPER DATA
 app.get('/api/users', protect, async (req, res) => {
     try {
-        const users = await User.find({}, 'username role isBanned');
+        const users = await User.find({}, 'username role isBanned isDeveloper');
         const rankOrder = { 'Owner': 1, 'Management': 2, 'Admin': 3, 'Staff': 4, 'User': 5 };
         
         users.sort((a, b) => (rankOrder[a.role] || 99) - (rankOrder[b.role] || 99));
