@@ -92,7 +92,7 @@ app.get('/api/me', protect, async (req, res) => {
 // GET USERS WITH RANK SORTING AND DEVELOPER DATA
 app.get('/api/users', protect, async (req, res) => {
     try {
-        const users = await User.find({}, 'username role isBanned isDeveloper');
+        const users = await User.find({}, 'username role isBanned isDeveloper isBum');
         const rankOrder = { 'Owner': 1, 'Management': 2, 'Admin': 3, 'Staff': 4, 'User': 5 };
         
         users.sort((a, b) => (rankOrder[a.role] || 99) - (rankOrder[b.role] || 99));
@@ -233,4 +233,5 @@ app.get('/logout', (req, res) => {
 });
 
 app.listen(process.env.PORT || 3000, () => console.log("Server Live"));
+
 
