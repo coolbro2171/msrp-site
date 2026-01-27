@@ -98,6 +98,7 @@ async function syncDiscordRoles(user) {
             'Admin': '1198422904308772926',
             'Staff': '1198422904266821640',
             'isDeveloper': '1396254329647923430',
+            'isDatabaseAccess': '0',
             'isStaffTrainer': '1397763310279069886',
         };
 
@@ -167,5 +168,6 @@ app.get('/dashboard', (req, res) => req.session.isLoggedIn ? res.sendFile(path.j
 app.get('/admin', (req, res) => req.session.isLoggedIn ? res.sendFile(path.join(__dirname, 'admin.html')) : res.redirect('/'));
 
 app.listen(3000, () => console.log("MSRP Server Live on Port 3000"));
+
 
 
