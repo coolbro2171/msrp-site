@@ -16,7 +16,7 @@ const app = express();
 const DISCORD_CLIENT_ID = '1465834442043031614';
 const DISCORD_CLIENT_SECRET = 'kRzCCJlwHV6VKtZwUYP4tKZoVdBP-0eK';
 const DISCORD_BOT_TOKEN = 'MTQ2NTgzNDQ0MjA0MzAzMTYxNA.GQHDVS.TZS06hvH4_5SdialpqCVAht5hxkkT6h4o_IxBU';
-const GUILD_ID = 'YOUR_SERVER_ID_HERE'; // Replace with your Discord Server ID
+const GUILD_ID = '1198422904178749500'; // Replace with your Discord Server ID
 
 const bot = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
 bot.login(DISCORD_BOT_TOKEN).catch(err => console.error("Discord Bot Login Failed:", err));
@@ -38,7 +38,6 @@ const userSchema = new mongoose.Schema({
     isDeveloper: { type: Boolean, default: false },
     isDatabaseAccess: { type: Boolean, default: false },
     isStaffTrainer: { type: Boolean, default: false },
-    isFounder: { type: Boolean, default: false },
     // Discord Integration
     discordId: { type: String, default: null },
     // 2FA Fields
@@ -94,14 +93,13 @@ async function syncDiscordRoles(user) {
         
         // PASTE YOUR DISCORD ROLE IDs HERE
         const roleMapping = {
-            'Owner': 'ID_HERE',
-            'Management': 'ID_HERE',
-            'Admin': 'ID_HERE',
-            'Staff': 'ID_HERE',
-            'isDeveloper': 'ID_HERE',
+            'Owner': '1395978500468637909,1396254329647923430',
+            'Management': '1385417365067399208',
+            'Admin': '1198422904308772926',
+            'Staff': '1198422904266821640',
+            'isDeveloper': '1396254329647923430',
             'isDatabaseAccess': 'ID_HERE',
-            'isStaffTrainer': 'ID_HERE',
-            'isFounder': 'ID_HERE'
+            'isStaffTrainer': '1397763310279069886',
         };
 
         let rolesToAssign = [];
@@ -170,3 +168,4 @@ app.get('/dashboard', (req, res) => req.session.isLoggedIn ? res.sendFile(path.j
 app.get('/admin', (req, res) => req.session.isLoggedIn ? res.sendFile(path.join(__dirname, 'admin.html')) : res.redirect('/'));
 
 app.listen(3000, () => console.log("MSRP Server Live on Port 3000"));
+
