@@ -4,72 +4,105 @@
     <meta charset="UTF-8">
     <title>MSRP | Staff Management Portal</title>
     <style>
-        body { font-family: sans-serif; background: #f4f4f4; padding: 20px; }
-        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; color: white; margin-right: 5px; }
-        .badge-dev { background: #00d2ff; }
-        .badge-trainer { background: #9b59b6; }
-        .badge-db { background: #e67e22; }
-        .btn { padding: 6px 10px; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
-        .btn-promote { background: #2ecc71; color: white; }
+        body { 
+            font-family: sans-serif; 
+            margin: 0;
+            background: url('https://cdn.discordapp.com/attachments/1423737735159484537/1462698389459439687/Screenshot_2026-01-19_at_1.40.06_AM.png') no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        .main-wrapper {
+            min-height: 100vh;
+            background: rgba(0, 0, 0, 0.7); /* Darkens the background */
+            padding: 50px;
+        }
+
+        .admin-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        h1 { border-bottom: 3px solid #007bff; padding-bottom: 10px; margin-bottom: 20px; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        
+        .badge {
+            padding: 5px 10px;
+            border-radius: 5px;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .b-dev { background: #3498db; }
+        .b-db { background: #e67e22; }
+        .b-trainer { background: #9b59b6; }
+
+        .btn {
+            padding: 8px 15px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+
+<div class="main-wrapper">
+    <div class="admin-box">
         <h2>Staff Management Portal</h2>
         <table>
             <thead>
                 <tr>
-                    <th>Username</th>
-                    <th>Role</th>
+                    <th>User</th>
+                    <th>Rank</th>
                     <th>Badges</th>
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody id="user-list"></tbody>
+            <tbody id="userRows"></tbody>
         </table>
     </div>
+</div>
 
-    <script>
-        async function loadUsers() {
-            const res = await fetch('/api/users');
-            const users = await res.json();
-            const list = document.getElementById('user-list');
-            list.innerHTML = '';
+<script>
+    async function load() {
+        const r = await fetch('/api/users');
+        const users = await r.json();
+        const list = document.getElementById('userRows');
+        list.innerHTML = users.map(u => `
+            <tr>
+                <td><strong>${u.username}</strong></td>
+                <td>${u.role}</td>
+                <td>
+                    ${u.isDeveloper ? '<span class="badge b-dev">DEV</span>' : ''}
+                    ${u.isDatabaseAccess ? '<span class="badge b-db">DATABASE</span>' : ''}
+                    ${u.isStaffTrainer ? '<span class="badge b-trainer">TRAINER</span>' : ''}
+                </td>
+                <td><button class="btn" onclick="rank('${u.username}')">Update</button></td>
+            </tr>
+        `).join('');
+    }
 
-            users.forEach(user => {
-                let badgeHTML = "";
-                if (user.isDeveloper) badgeHTML += `<span class="badge badge-dev">DEVELOPER</span>`;
-                if (user.isStaffTrainer) badgeHTML += `<span class="badge badge-trainer">STAFF TRAINER</span>`;
-                if (user.isDatabaseAccess) badgeHTML += `<span class="badge badge-db">DATABASE ACCESS</span>`;
-                
-                let actions = `<button class="btn btn-promote" onclick="promote('${user.username}')">Promote</button>`;
-                if (user.role === 'Owner') actions = "N/A";
-
-                const row = `<tr>
-                    <td>${user.username}</td>
-                    <td>${user.role}</td>
-                    <td>${badgeHTML || 'None'}</td>
-                    <td>${actions}</td>
-                </tr>`;
-                list.innerHTML += row;
-            });
-        }
-
-        async function promote(username) {
-            const newRole = prompt("Enter new role (Staff, Admin, Management):");
-            if (!newRole) return;
-            await fetch(`/api/promote-user/${username}`, {
+    async function rank(name) {
+        const next = prompt("Enter new rank (Staff, Admin, Management):");
+        if(next) {
+            await fetch(`/api/promote-user/${name}`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ newRole })
+                body: JSON.stringify({ newRole: next })
             });
-            loadUsers();
+            load();
         }
+    }
+    load();
+</script>
 
-        loadUsers();
-    </script>
 </body>
 </html>
