@@ -23,7 +23,6 @@ const userSchema = new mongoose.Schema({
     isDeveloper: { type: Boolean, default: false },
     isDatabaseAccess: { type: Boolean, default: false },
     isStaffTrainer: { type: Boolean, default: false },
-    isFounder: { type: Boolean, default: false }
 });
 const User = mongoose.model('User', userSchema);
 
@@ -52,7 +51,7 @@ app.use(session({
 app.get('/api/users', async (req, res) => {
     if (!req.session.isLoggedIn) return res.status(401).send('Unauthorized');
     try {
-        const users = await User.find({}, 'username role isBanned isDeveloper isDatabaseAccess isStaffTrainer isFounder');
+        const users = await User.find({}, 'username role isBanned isDeveloper isDatabaseAccess isStaffTrainer');
         res.json(users);
     } catch (err) { res.status(500).send('Error loading users'); }
 });
@@ -124,3 +123,4 @@ app.get('/admin', (req, res) => {
 // Use process.env.PORT for deployment (like Render/Heroku) or 3000 locally
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP Portal running on Port ${PORT}`));
+
