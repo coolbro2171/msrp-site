@@ -3,78 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MSRP | Login</title>
-    <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/icons/1198422904178749500/6bfeee54c636ac47d339a198ff6843d2.webp">
+    <title>MSRP | Access Portal</title>
     <style>
-        body, html { height: 100%; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        
-        .bg-video {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
-            background-image: url('https://cdn.discordapp.com/attachments/1423737735159484537/1462698389459439687/Screenshot_2026-01-19_at_1.40.06_AM.png?ex=6973c0c7&is=69726f47&hm=c6190bbb0efec04d0d16cf86db54ce4a5822e8f0936a68f9f8d8f66f1076b030&');
-            background-size: cover; background-position: center; filter: blur(10px); transform: scale(1.1);
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body, html { height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        /* Background Image Logic */
+        .background-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background: url('https://cdn.discordapp.com/attachments/1423737735159484537/1462698389459439687/Screenshot_2026-01-19_at_1.40.06_AM.png') no-repeat center center;
+            background-size: cover;
+            filter: blur(10px);
+            transform: scale(1.1);
         }
-        
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 0; }
+
+        /* Dark Overlay */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 0;
+        }
+
+        .container {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
 
         .login-card {
-            width: 400px; background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.4); position: relative; z-index: 1; text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 380px;
+            text-align: center;
         }
 
-        h2 { margin-bottom: 25px; color: #333; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+        h2 { margin-bottom: 25px; color: #333; letter-spacing: 1px; font-weight: 800; }
 
         input {
-            width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px;
-            box-sizing: border-box; font-size: 1rem; transition: 0.3s;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
         }
-        input:focus { border-color: #007bff; outline: none; box-shadow: 0 0 8px rgba(0,123,255,0.2); }
 
         .btn-login {
-            width: 100%; padding: 12px; background: #007bff; color: white; border: none;
-            border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; margin-top: 10px;
+            width: 100%;
+            padding: 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-bottom: 20px;
         }
+
         .btn-login:hover { background: #0056b3; }
 
-        .divider {
-            margin: 25px 0; border-bottom: 1px solid #ddd; line-height: 0.1em; text-align: center;
+        .register-text {
+            font-size: 14px;
+            color: #666;
         }
-        .divider span { background: #f9f9f9; padding: 0 15px; color: #888; font-size: 0.85rem; font-weight: bold; }
 
-        .btn-discord {
-            width: 100%; display: flex; align-items: center; justify-content: center;
-            background-color: #5865F2; color: white; text-decoration: none; padding: 12px;
-            border-radius: 8px; font-weight: bold; font-size: 1rem; transition: 0.3s; box-sizing: border-box;
+        .btn-register {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+            transition: 0.2s;
         }
-        .btn-discord:hover { background-color: #4752C4; }
-        .btn-discord img { width: 22px; margin-right: 12px; }
 
-        .footer-text { margin-top: 20px; font-size: 0.85rem; color: #666; }
-        .footer-text a { color: #007bff; text-decoration: none; font-weight: bold; }
+        .btn-register:hover {
+            text-decoration: underline;
+            color: #0056b3;
+        }
     </style>
 </head>
 <body>
 
-<div class="bg-video"></div>
-<div class="overlay"></div>
+    <div class="background-container"></div>
+    <div class="overlay"></div>
 
-<div class="login-card">
-    <h2>MSRP Portal</h2>
-    
-    <form action="/login" method="POST">
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
-        <button type="submit" class="btn-login">Login to Portal</button>
-    </form>
-
-    <div class="divider"><span>OR</span></div>
-
-    <a href="/auth/discord" class="btn-discord">
-        <img src="https://cdn.prod.website-files.com/6257adef93867e3d8405e905/636e0a2249aa57ef0c345398_discord-logo-white.svg" alt="Discord Logo">
-        Login with Discord
-    </a>
-
-    <p class="footer-text">Don't have an account? <a href="/register">Create one</a></p>
-</div>
+    <div class="container">
+        <div class="login-card">
+            <h2>MSRP PORTAL</h2>
+            <form action="/login" method="POST">
+                <input type="text" name="username" placeholder="Username" required>
+                <input type="password" name="password" placeholder="Password" required>
+                <button type="submit" class="btn-login">Sign In</button>
+            </form>
+            
+            <p class="register-text">
+                Don't have an account? 
+                <a href="/register" class="btn-register">Create Account</a>
+            </p>
+        </div>
+    </div>
 
 </body>
 </html>
