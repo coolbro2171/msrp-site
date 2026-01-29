@@ -4,18 +4,20 @@ const path = require('path');
 const session = require('express-session');
 const mongoose = require('mongoose');
 const MongoStore = require('connect-mongo');
+const { authenticator } = require('otplib');
+const qrcode = require('qrcode');
 
 const app = express();
-app.set('trust proxy', 1);
 
 // --- DATABASE CONNECTION ---
 const MONGODB_URI = "mongodb+srv://cool_bro2171:Leonardo3@msrp-site.axszmf7.mongodb.net/MSRP_Database?retryWrites=true&w=majority&appName=MSRP-Site";
 
 mongoose.connect(MONGODB_URI)
-    .then(() => console.log("Database Connected Successfully"))
+    .then(() => console.log("Connected to Database Successfully"))
     .catch(err => console.error("Database connection error:", err));
 
 // --- USER SCHEMA ---
+// Added isDeveloper and isFounder fields to prevent errors when the Admin Panel loads
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
@@ -24,77 +26,206 @@ const userSchema = new mongoose.Schema({
     isDeveloper: { type: Boolean, default: false },
     isDatabaseAccess: { type: Boolean, default: false },
     isStaffTrainer: { type: Boolean, default: false },
+    twoFactorSecret: { type: String },
+    twoFactorEnabled: { type: Boolean, default: false }
 });
 const User = mongoose.model('User', userSchema);
 
 // --- MIDDLEWARE ---
-app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname));
+app.use(express.json());
+app.use(express.static(__dirname)); 
+app.use('/files', express.static(path.join(__dirname, 'files'))); 
 
-// --- SESSION CONFIGURATION (Fixes the Redirect Issue) ---
 app.use(session({
     secret: 'secure-dev-key-789',
-    resave: true,                // Changed to true for troubleshooting
-    saveUninitialized: true,     // Changed to true for troubleshooting
-    store: MongoStore.create({ 
-        mongoUrl: MONGODB_URI,
-        collectionName: 'sessions',
-        stringify: false         // Helps with some MongoDB compatibility issues
-    }),
-    cookie: { 
-        secure: false,           // Keep false unless you have HTTPS/SSL
-        sameSite: 'lax',         // Helps modern browsers accept the cookie
-        maxAge: 1000 * 60 * 60 * 24 
-    }
+    resave: true,
+    saveUninitialized: false,
+    store: MongoStore.create({ mongoUrl: MONGODB_URI }),
+    cookie: { maxAge: 3600000, sameSite: 'lax', secure: false }
 }));
 
-// --- API ROUTES ---
-app.get('/api/users', async (req, res) => {
-    if (!req.session.isLoggedIn) return res.status(401).send('Unauthorized');
+// --- KEEP-ALIVE ROUTE ---
+app.get('/ping', (req, res) => res.status(200).send('Server is awake'));
+
+const protect = (req, res, next) => {
+    if (req.session.isLoggedIn && !req.session.needs2FA) {
+        next();
+    } else if (req.session.needs2FA) {
+        res.redirect('/2fa-verify');
+    } else {
+        res.redirect('/');
+    }
+};
+
+// --- PAGE ROUTES ---
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
+app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/settings', protect, (req, res) => res.sendFile(path.join(__dirname, 'settings.html')));
+app.get('/documents', protect, (req, res) => res.sendFile(path.join(__dirname, 'documents.html')));
+
+app.get('/2fa-verify', (req, res) => {
+    if (!req.session.username || !req.session.needs2FA) return res.redirect('/');
+    res.sendFile(path.join(__dirname, '2fa-verify.html'));
+});
+
+app.get('/admin', protect, async (req, res) => {
+    const user = await User.findOne({ username: req.session.username });
+    const hasAccess = user && ['Owner', 'Management', 'Admin'].includes(user.role);
+    if (hasAccess) {
+        res.sendFile(path.join(__dirname, 'admin.html'));
+    } else {
+        res.status(403).send('Unauthorized access. Admin+ required.');
+    }
+});
+
+// --- API ROUTES (Staff Management & Ranking) ---
+
+app.get('/api/me', protect, async (req, res) => {
+    const user = await User.findOne({ username: req.session.username });
+    res.json({ 
+        username: user.username, 
+        role: user.role, 
+        twoFactorEnabled: user.twoFactorEnabled 
+    });
+});
+
+// FIXED: Added isDeveloper and isFounder to the query to fix the Admin Panel loading issue
+app.get('/api/users', protect, async (req, res) => {
     try {
-        const users = await User.find({}, 'username role isBanned isDeveloper isDatabaseAccess isStaffTrainer');
+        const users = await User.find({}, 'username role isBanned isDeveloper isDatabaseAccess isStaffTrainer twoFactorEnabled');
+        const rankOrder = { 'Owner': 1, 'Management': 2, 'Admin': 3, 'Staff': 4, 'User': 5 };
+        
+        users.sort((a, b) => (rankOrder[a.role] || 99) - (rankOrder[b.role] || 99));
         res.json(users);
-    } catch (err) { res.status(500).send('Error loading users'); }
+    } catch (err) {
+        res.status(500).send('Error sorting users');
+    }
 });
 
-app.post('/api/promote-user/:username', async (req, res) => {
-    if (!req.session.isLoggedIn) return res.status(401).send('Unauthorized');
+// BAN/UNBAN ROUTE
+app.post('/api/ban-user/:username', protect, async (req, res) => {
+    const currentUser = await User.findOne({ username: req.session.username });
+    if (!['Owner', 'Management', 'Admin'].includes(currentUser.role)) return res.sendStatus(403);
+    
+    const target = await User.findOne({ username: req.params.username });
+    if (!target) return res.status(404).send('User not found');
+    if (target.role === 'Owner') return res.status(403).send('Cannot ban an Owner');
+
+    target.isBanned = req.body.isBanned;
+    await target.save();
+    res.sendStatus(200);
+});
+
+// DELETE USER ROUTE
+app.delete('/api/delete-user/:username', protect, async (req, res) => {
+    const currentUser = await User.findOne({ username: req.session.username });
+    if (!['Owner', 'Management'].includes(currentUser.role)) return res.sendStatus(403);
+    
+    const target = await User.findOne({ username: req.params.username });
+    if (target && target.role === 'Owner') return res.status(403).send('Cannot delete an Owner');
+
+    const result = await User.deleteOne({ username: req.params.username });
+    if (result.deletedCount === 1) res.sendStatus(200);
+    else res.status(404).send('User not found');
+});
+
+// ROLE PROMOTION/DEMOTION ROUTE
+app.post('/api/promote-user/:username', protect, async (req, res) => {
+    const currentUser = await User.findOne({ username: req.session.username });
+    const target = await User.findOne({ username: req.params.username });
+    const { newRole } = req.body; 
+
+    if (!target) return res.status(404).send('User not found');
+    if (target.role === 'Owner') return res.status(403).send('Cannot modify Owner');
+
+    const isOwnerOrMgt = ['Owner', 'Management'].includes(currentUser.role);
+    const isAdminPromotingToStaff = currentUser.role === 'Admin' && target.role === 'User' && newRole === 'Staff';
+    const isAdminDemotingStaff = currentUser.role === 'Admin' && target.role === 'Staff' && newRole === 'User';
+
+    if (isOwnerOrMgt || isAdminPromotingToStaff || isAdminDemotingStaff) {
+        target.role = newRole;
+        await target.save();
+        return res.sendStatus(200);
+    }
+    res.status(403).send('Unauthorized rank change.');
+});
+
+// --- 2FA & SETTINGS API ---
+app.post('/api/settings/2fa/setup', protect, async (req, res) => {
+    const secret = authenticator.generateSecret();
+    const otpauth = authenticator.keyuri(req.session.username, 'MSRP-Portal', secret);
+    const user = await User.findOne({ username: req.session.username });
+    user.twoFactorSecret = secret; 
+    await user.save();
+    const qrImageUrl = await qrcode.toDataURL(otpauth);
+    res.json({ qrCode: qrImageUrl });
+});
+
+app.post('/api/settings/2fa/verify', protect, async (req, res) => {
+    const { token } = req.body;
+    const user = await User.findOne({ username: req.session.username });
+    if (authenticator.check(token, user.twoFactorSecret)) {
+        user.twoFactorEnabled = true;
+        await user.save();
+        res.sendStatus(200);
+    } else {
+        res.status(400).send("Invalid code.");
+    }
+});
+
+app.post('/api/settings/2fa/disable', protect, async (req, res) => {
+    const user = await User.findOne({ username: req.session.username });
+    user.twoFactorEnabled = false;
+    user.twoFactorSecret = null;
+    await user.save();
+    res.send("2FA Disabled.");
+});
+
+// --- LOGIN & AUTH ---
+app.post('/register', async (req, res) => {
     try {
-        const target = await User.findOne({ username: req.params.username });
-        if (target) {
-            target.role = req.body.newRole;
-            await target.save();
-            res.sendStatus(200);
-        } else { res.status(404).send('User not found'); }
-    } catch (err) { res.status(500).send('Promotion failed'); }
+        const { username, password } = req.body;
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const count = await User.countDocuments();
+        const role = count === 0 ? 'Owner' : 'User';
+        await new User({ username, password: hashedPassword, role }).save();
+        res.redirect('/');
+    } catch (err) { res.status(500).send('Registration failed.'); }
 });
 
-// --- AUTH ROUTES ---
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    try {
-        const user = await User.findOne({ username });
-        if (user && await bcrypt.compare(password, user.password)) {
-            if (user.isBanned) return res.status(403).send('Account Banned');
+    const user = await User.findOne({ username });
+    
+    if (user && user.isBanned) {
+        return res.status(403).send('This account is currently banned.');
+    }
 
-            // Set session data
-            req.session.username = user.username;
-            req.session.isLoggedIn = true;
-
-            // FORCE SESSION SAVE before redirecting to prevent the dashboard loop
-            req.session.save((err) => {
-                if (err) {
-                    console.error("Session Save Error:", err);
-                    return res.status(500).send("Login Error");
-                }
-                res.redirect('/dashboard');
-            });
-        } else {
-            res.status(401).send('Invalid Username or Password');
+    if (user && await bcrypt.compare(password, user.password)) {
+        req.session.username = username;
+        req.session.role = user.role;
+        if (user.twoFactorEnabled) {
+            req.session.needs2FA = true;
+            return res.redirect('/2fa-verify');
         }
-    } catch (err) {
-        res.status(500).send('Server Error');
+        req.session.isLoggedIn = true;
+        res.redirect('/dashboard');
+    } else {
+        res.status(401).send('Invalid credentials.');
+    }
+});
+
+app.post('/api/login/2fa-verify', async (req, res) => {
+    const { token } = req.body;
+    const user = await User.findOne({ username: req.session.username });
+    if (authenticator.check(token, user.twoFactorSecret)) {
+        req.session.isLoggedIn = true;
+        delete req.session.needs2FA;
+        res.sendStatus(200);
+    } else {
+        res.status(400).send("Invalid code.");
     }
 });
 
@@ -103,28 +234,7 @@ app.get('/logout', (req, res) => {
     res.redirect('/');
 });
 
-// --- PAGE NAVIGATION ---
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-
-app.get('/dashboard', (req, res) => {
-    if (req.session.isLoggedIn) {
-        res.sendFile(path.join(__dirname, 'dashboard.html'));
-    } else {
-        res.redirect('/');
-    }
-});
-
-app.get('/admin', (req, res) => {
-    if (req.session.isLoggedIn) {
-        res.sendFile(path.join(__dirname, 'admin.html'));
-    } else {
-        res.redirect('/');
-    }
-});
-
-// Use process.env.PORT for deployment (like Render/Heroku) or 3000 locally
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`MSRP Portal running on Port ${PORT}`));
+app.listen(process.env.PORT || 3000, () => console.log("Server Live"));
 
 
 
