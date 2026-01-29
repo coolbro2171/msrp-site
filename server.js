@@ -35,16 +35,17 @@ app.use(express.static(__dirname));
 // --- SESSION CONFIGURATION (Fixes the Redirect Issue) ---
 app.use(session({
     secret: 'secure-dev-key-789',
-    resave: false,
-    saveUninitialized: false,
+    resave: true,                // Changed to true for troubleshooting
+    saveUninitialized: true,     // Changed to true for troubleshooting
     store: MongoStore.create({ 
         mongoUrl: MONGODB_URI,
-        collectionName: 'sessions' 
+        collectionName: 'sessions',
+        stringify: false         // Helps with some MongoDB compatibility issues
     }),
     cookie: { 
-        maxAge: 1000 * 60 * 60 * 24, // 24 hours
-        secure: false, // Set to true if using HTTPS
-        httpOnly: true 
+        secure: false,           // Keep false unless you have HTTPS/SSL
+        sameSite: 'lax',         // Helps modern browsers accept the cookie
+        maxAge: 1000 * 60 * 60 * 24 
     }
 }));
 
@@ -124,5 +125,6 @@ app.get('/admin', (req, res) => {
 // Use process.env.PORT for deployment (like Render/Heroku) or 3000 locally
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP Portal running on Port ${PORT}`));
+
 
 
