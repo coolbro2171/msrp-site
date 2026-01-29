@@ -3,123 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MSRP | Login Portal</title>
+    <title>MSRP | Login</title>
+    <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/icons/1198422904178749500/6bfeee54c636ac47d339a198ff6843d2.webp">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
 
-        body, html { height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-
-        /* Background Image Logic */
-        .background-container {
+        .bg-container {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             z-index: -1;
-            background: url('https://cdn.discordapp.com/attachments/1423737735159484537/1464867032859410626/Screenshot_2026-01-24_at_11.49.57_PM.png?ex=697ba47c&is=697a52fc&hm=4c102ee81ec5633d99f2bb7b3397c1cbda83c26fdb659ae88dfedcbf266928b7&') no-repeat center center;
+            /* Background color fallback */
+            background-color: #1a1a1a; 
+            /* Your Image Link */
+            background-image: url('https://cdn.discordapp.com/attachments/1423737735159484537/1462698389459439687/Screenshot_2026-01-19_at_1.40.06_AM.png?ex=6973c0c7&is=69726f47&hm=c6190bbb0efec04d0d16cf86db54ce4a5822e8f0936a68f9f8d8f66f1076b030&');
             background-size: cover;
-            filter: blur(10px);
+            background-position: center;
+            /* Applying blur and scale to prevent white borders */
+            filter: blur(12px);
+            -webkit-filter: blur(12px);
             transform: scale(1.1);
         }
 
-        /* Dark Overlay */
         .overlay {
-            position: fixed;
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 0;
-        }
-
-        .container {
-            height: 100vh;
+            background: rgba(0, 0, 0, 0.4);
             display: flex;
             justify-content: center;
             align-items: center;
-            position: relative;
             z-index: 1;
         }
 
-        .login-card {
+        .login-box {
             background: rgba(255, 255, 255, 0.95);
             padding: 40px;
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            width: 380px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 360px;
             text-align: center;
         }
 
-        h2 { margin-bottom: 25px; color: #333; letter-spacing: 1px; font-weight: 800; }
+        h2 { color: #333; margin-bottom: 25px; font-weight: 700; }
 
         input {
             width: 100%;
             padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 16px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
         }
 
-        .btn-login {
+        button {
             width: 100%;
             padding: 12px;
-            background: #007bff;
+            background-color: #007bff;
             color: white;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
+            border-radius: 6px;
             cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 15px;
             transition: 0.3s;
-            margin-bottom: 20px;
         }
 
-        .btn-login:hover { background: #0056b3; }
+        button:hover { background-color: #0056b3; }
 
-        .register-text {
-            font-size: 14px;
-            color: #666;
+        .link-text {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #555;
         }
 
-        .btn-register {
+        .link-text a {
             color: #007bff;
             text-decoration: none;
             font-weight: bold;
-            transition: 0.2s;
-        }
-
-        .btn-register:hover {
-            text-decoration: underline;
-            color: #0056b3;
         }
     </style>
 </head>
 <body>
 
-    <div class="background-container"></div>
-    <div class="overlay"></div>
+<div class="bg-container"></div>
 
-    <div class="container">
-        <div class="login-card">
-            <h2>MSRP LOGIN PORTAL</h2>
-            <form action="/login" method="POST">
-                <input type="text" name="username" placeholder="Username" required>
-                <input type="password" name="password" placeholder="Password" required>
-                <button type="submit" class="btn-login">Sign In</button>
-            </form>
-            
-            <p class="register-text">
-                Don't have an account? 
-                <a href="/register" class="btn-register">Create Account</a>
-            </p>
+<div class="overlay">
+    <div class="login-box">
+        <h2>MSRP Login</h2>
+        <form action="/login" method="POST">
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Sign In</button>
+        </form>
+        <div class="link-text">
+            Don't have an account? <a href="/register">Register here</a>
             <p>Website Made and Managed by the MSRP Development Team</p>
         </div>
     </div>
+</div>
 
 </body>
 </html>
+
+
 
 
