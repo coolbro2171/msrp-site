@@ -6,6 +6,7 @@ const mongoose = require('mongoose');
 const MongoStore = require('connect-mongo');
 
 const app = express();
+app.set('trust proxy', 1);
 
 // --- DATABASE CONNECTION ---
 const MONGODB_URI = "mongodb+srv://cool_bro2171:Leonardo3@msrp-site.axszmf7.mongodb.net/MSRP_Database?retryWrites=true&w=majority&appName=MSRP-Site";
@@ -123,4 +124,5 @@ app.get('/admin', (req, res) => {
 // Use process.env.PORT for deployment (like Render/Heroku) or 3000 locally
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP Portal running on Port ${PORT}`));
+
 
