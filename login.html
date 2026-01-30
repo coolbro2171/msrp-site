@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSRP | Login</title>
+    <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/icons/1198422904178749500/6bfeee54c636ac47d339a198ff6843d2.webp">
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        .bg-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            /* Background color fallback */
+            background-color: #1a1a1a; 
+            /* Your Image Link */
+            background-image: url('https://cdn.discordapp.com/attachments/1423737735159484537/1464867032859410626/Screenshot_2026-01-24_at_11.49.57_PM.png?ex=6977affc&is=69765e7c&hm=229618631d2a4201320d7914ce099e80f605e510bc9d0b1f70058234dfeabd1e&');
+            background-size: cover;
+            background-position: center;
+            /* Applying blur and scale to prevent white borders */
+            filter: blur(12px);
+            -webkit-filter: blur(12px);
+            transform: scale(1.1);
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1;
+        }
+
+        .login-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+        }
+
+        h2 { color: #333; margin-bottom: 25px; font-weight: 700; }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            margin-top: 15px;
+            transition: 0.3s;
+        }
+
+        button:hover { background-color: #0056b3; }
+
+        .link-text {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #555;
+        }
+
+        .link-text a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .dev-text {
+            margin-top: 10px;
+            font-size: 0.7rem;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-container"></div>
+
+<div class="overlay">
+    <div class="login-box">
+        <h2>MSRP Staff Login</h2>
+        <form action="/login" method="POST">
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+            <button type="submit">Sign In</button>
+        </form>
+        <div class="link-text">
+            Don't have an account? <a href="/register">Register here</a>
+        </div>
+        <div class="dev-text">
+            <p>Website Made and Managed by the MSRP Development Team</p>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
+
+
+
+
+
+
+
