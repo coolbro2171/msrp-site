@@ -61,20 +61,26 @@ app.get('/api/check-auth', (req, res) => {
 });
 
 // Admin Only: Get all users
+// Add this in the API section of server.js
 app.get('/api/admin/users', async (req, res) => {
-    if (!req.session.isLoggedIn) return res.status(401).send('Unauthorized');
-    
     try {
-        // Only allow Admin, Management, or Owner to see this list
-        const currentUser = await User.findOne({ username: req.session.username });
-        if (!['Admin', 'Management', 'Owner'].includes(currentUser.role)) {
-            return res.status(403).send('Forbidden');
+        // Check if user is logged in
+        if (!req.session.isLoggedIn) {
+            return res.status(401).json({ error: "Not logged in" });
         }
 
-        const users = await User.find({}, '-password'); // Exclude passwords for safety
+        // Optional: Check if they are actually an Admin/Management
+        const user = await User.findOne({ username: req.session.username });
+        if (!['Admin', 'Management', 'Owner'].includes(user.role)) {
+            return res.status(403).json({ error: "Insufficient permissions" });
+        }
+
+        console.log("Admin API: Fetching user list for", req.session.username);
+        const users = await User.find({}, '-password'); // Send everything except passwords
         res.json(users);
     } catch (err) {
-        res.status(500).send('Error fetching users');
+        console.error("Admin API Error:", err);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
@@ -202,6 +208,7 @@ app.get('/admin', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP running on port ${PORT}`));
+
 
 
 
