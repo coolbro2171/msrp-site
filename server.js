@@ -7,8 +7,7 @@ const MongoStore = require('connect-mongo');
 
 const app = express();
 
-// --- DEPLOYMENT SETTINGS ---
-// Required for Render/Cloud hosting to keep sessions active
+// Required for Render/Cloud deployment stability
 app.set('trust proxy', 1); 
 
 // --- DATABASE CONNECTION ---
@@ -45,13 +44,13 @@ app.use(session({
         collectionName: 'sessions' 
     }),
     cookie: { 
-        secure: false, // Set to true if you move to HTTPS/SSL
+        secure: false, 
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24 // 24 Hours
     }
 }));
 
-// --- AUTH CHECK API (For index.html recognition) ---
+// --- AUTH CHECK API (Fixes Information Page Recognition) ---
 app.get('/api/check-auth', (req, res) => {
     if (req.session.isLoggedIn) {
         res.json({ loggedIn: true, username: req.session.username });
@@ -62,7 +61,6 @@ app.get('/api/check-auth', (req, res) => {
 
 // --- AUTH ROUTES ---
 
-// Registration Logic
 app.post('/register', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -71,11 +69,10 @@ app.post('/register', async (req, res) => {
         await newUser.save();
         res.redirect('/login');
     } catch (err) {
-        res.status(400).send("User already exists or registration error.");
+        res.status(400).send("Registration failed.");
     }
 });
 
-// Login Logic with Session Force-Save
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -86,9 +83,9 @@ app.post('/login', async (req, res) => {
             req.session.username = user.username;
             req.session.isLoggedIn = true;
 
-            // Wait for DB to save session before redirecting
+            // FORCE SAVE then go to Dashboard (Fixes the "Laggy" redirect)
             req.session.save((err) => {
-                if (err) return res.status(500).send("Session Error");
+                if (err) return res.status(500).send("Login failed");
                 res.redirect('/dashboard');
             });
         } else {
@@ -106,22 +103,10 @@ app.get('/logout', (req, res) => {
 
 // --- PAGE NAVIGATION ---
 
-// Main Landing/Info Page
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
 
-// Login Page
-app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'login.html'));
-});
-
-// Register Page
-app.get('/register', (req, res) => {
-    res.sendFile(path.join(__dirname, 'register.html'));
-});
-
-// Protected Dashboard
 app.get('/dashboard', (req, res) => {
     if (req.session.isLoggedIn) {
         res.sendFile(path.join(__dirname, 'dashboard.html'));
@@ -130,7 +115,6 @@ app.get('/dashboard', (req, res) => {
     }
 });
 
-// Protected Admin Panel
 app.get('/admin', (req, res) => {
     if (req.session.isLoggedIn) {
         res.sendFile(path.join(__dirname, 'admin.html'));
@@ -139,13 +123,5 @@ app.get('/admin', (req, res) => {
     }
 });
 
-// API for Admin Panel User Management
-app.get('/api/users', async (req, res) => {
-    if (!req.session.isLoggedIn) return res.status(401).send('Unauthorized');
-    const users = await User.find({}, '-password');
-    res.json(users);
-});
-
-// --- START SERVER ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP Portal Live on Port ${PORT}`));
