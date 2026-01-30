@@ -241,6 +241,28 @@
             const activeTab = document.getElementById(tabId);
             activeTab.classList.add('active');
             btn.classList.add('active');
+
+            async function checkAuthStatus() {
+    try {
+        const response = await fetch('/api/check-auth');
+        const data = await response.json();
+        const nav = document.getElementById('auth-nav');
+
+        if (data.loggedIn) {
+            // Update the Top Nav to show the user is already here
+            nav.innerHTML = `
+                <span style="margin-right: 15px; font-weight: bold; color: #b0b0b0;">Logged in as ${data.username}</span>
+                <a href="/dashboard" style="background: #60068f;">Go to Dashboard</a>
+                <a href="/logout" style="background: rgba(255,0,0,0.2); border: 1px solid rgba(255,0,0,0.3);">Logout</a>
+            `;
+        }
+    } catch (err) {
+        console.log("Not logged in");
+    }
+}
+
+// Run this as soon as the page loads
+checkAuthStatus();
         }
     </script>
 </body>
