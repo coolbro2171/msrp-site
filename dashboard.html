@@ -5,70 +5,193 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MSRP | Staff Dashboard</title>
     <style>
-        :root { --purple: #60068f; --dark: #0a0a0a; --glass: rgba(255, 255, 255, 0.05); }
-        body { background: var(--dark); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; }
-        
-        .sidebar { width: 260px; background: #111; border-right: 1px solid #222; padding: 30px; }
-        .main-content { flex-grow: 1; padding: 60px; overflow-y: auto; }
-        
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
-        .card { background: var(--glass); padding: 30px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); }
-        
-        .btn-info { 
-            text-decoration: none; color: white; background: var(--purple); 
-            padding: 10px 20px; border-radius: 8px; font-weight: bold; transition: 0.3s;
+        :root {
+            --primary-purple: #60068f;
+            --glass: rgba(255, 255, 255, 0.05);
+            --sidebar-bg: #0f0f0f;
+            --bg-dark: #0a0a0a;
         }
-        .btn-info:hover { opacity: 0.8; transform: translateY(-2px); }
-        
-        .user-welcome { font-size: 2rem; font-weight: 800; }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+
+        body {
+            background: var(--bg-dark);
+            color: #ffffff;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styling (Matches Info Page) */
+        .sidebar {
+            width: 280px;
+            background: var(--sidebar-bg);
+            border-right: 1px solid #222;
+            display: flex;
+            flex-direction: column;
+            padding: 40px 25px;
+        }
+
+        .sidebar h2 { 
+            margin-bottom: 40px; 
+            font-size: 1.4rem; 
+            color: var(--primary-purple);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-btn {
+            background: none;
+            border: none;
+            color: #888;
+            text-align: left;
+            padding: 14px 18px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            text-decoration: none;
+            display: block;
+        }
+
+        .sidebar-btn:hover {
+            color: white;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .sidebar-btn.active {
+            background: var(--primary-purple);
+            color: white;
+            box-shadow: 0 4px 12px rgba(96, 6, 143, 0.2);
+        }
+
+        .sidebar-btn.info-link {
+            margin-top: auto; /* Pushes to bottom */
+            color: var(--primary-purple);
+            border: 1px solid rgba(96, 6, 143, 0.3);
+        }
+
+        /* Main Content Area */
+        .content {
+            flex-grow: 1;
+            padding: 80px;
+            overflow-y: auto;
+            background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 50px;
+        }
+
+        h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; }
+
+        /* Glass Cards */
+        .dashboard-card {
+            background: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 25px;
+        }
+
+        .dashboard-card h3 {
+            color: var(--primary-purple);
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .dashboard-card p {
+            color: #b0b0b0;
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+
+        .logout-btn {
+            color: #ff4444;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: rgba(255, 68, 68, 0.1);
+            transition: 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #ff4444;
+            color: white;
+        }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <h2 style="color: var(--purple);">MSRP STAFF</h2>
-        <hr style="border: 0.5px solid #222; margin: 20px 0;">
-        <p>Menu</p>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <a href="#" style="color: white; text-decoration: none;">Profile</a>
-            <a href="/documents" style="color: #888; text-decoration: none;">Documents</a>
-            <a href="/" style="color: var(--purple); text-decoration: none; font-weight: bold;">View Info Page</a>
-        </div>
+        <h2>MSRP Staff</h2>
+        
+        <a href="/dashboard" class="sidebar-btn active">Dashboard</a>
+        <a href="/profile" class="sidebar-btn">Profile</a>
+        <a href="/documents" class="sidebar-btn">Documents</a>
+        <a href="/admin" class="sidebar-btn" id="admin-link" style="display: none;">Admin Panel</a>
+        
+        <a href="/" class="sidebar-btn info-link">← View Info Page</a>
     </div>
 
-    <div class="main-content">
+    <div class="content">
         <div class="header">
-            <div class="user-welcome" id="display-name">Loading...</div>
-            <a href="/logout" style="color: #ff4444; text-decoration: none;">Logout</a>
+            <h1 id="welcome-text">Welcome, Staff</h1>
+            <a href="/logout" class="logout-btn">Logout</a>
         </div>
 
-        <div class="card">
-            <h3>Staff Notice</h3>
-            <p>Welcome to the MSRP Staff Portal. Use the links on the left to navigate your duties. Please ensure you stay logged in while on duty.</p>
+        <div class="dashboard-card">
+            <h3>Staff Notice Board</h3>
+            <p>Welcome to the newly updated MSRP Staff Portal. Please ensure you are familiar with the updated server documents and the new registration flow. If you encounter any bugs, report them to the development team immediately.</p>
+        </div>
+
+        <div class="dashboard-card">
+            <h3>Your Status</h3>
+            <p id="user-role">Role: Fetching...</p>
         </div>
     </div>
 
     <script>
-        // GATEKEEPER SCRIPT
-        async function verifyAccess() {
+        // GATEKEEPER & DATA FETCH
+        async function loadDashboard() {
             try {
                 const response = await fetch('/api/check-auth');
                 const data = await response.json();
 
                 if (!data.loggedIn) {
-                    // If not logged in, boot to login page immediately
                     window.location.href = '/login';
                 } else {
-                    // Update the UI with the username
-                    document.getElementById('display-name').innerText = `Welcome, ${data.username}`;
+                    // Update UI with Session Data
+                    document.getElementById('welcome-text').innerText = `Welcome, ${data.username}`;
+                    
+                    // We need a separate fetch for role details if they aren't in check-auth
+                    const userResponse = await fetch('/api/admin/users'); 
+                    // Note: This works because we are the logged in user
+                    const users = await userResponse.json();
+                    const me = users.find(u => u.username === data.username);
+                    
+                    if (me) {
+                        document.getElementById('user-role').innerText = `Role: ${me.role}`;
+                        
+                        // Show Admin Panel button if they are Admin+
+                        if (['Admin', 'Management', 'Owner'].includes(me.role)) {
+                            document.getElementById('admin-link').style.display = 'block';
+                        }
+                    }
                 }
             } catch (err) {
-                window.location.href = '/login';
+                console.error("Dashboard error:", err);
             }
         }
 
-        // Run as soon as the file is parsed
-        verifyAccess();
+        loadDashboard();
     </script>
 </body>
 </html>
