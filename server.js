@@ -59,8 +59,8 @@ const protect = (req, res, next) => {
 };
 
 // --- PAGE ROUTES ---
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'info.html')));
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
 app.get('/dashboard', protect, (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
 app.get('/settings', protect, (req, res) => res.sendFile(path.join(__dirname, 'settings.html')));
@@ -236,6 +236,7 @@ app.get('/logout', (req, res) => {
 });
 
 app.listen(process.env.PORT || 3000, () => console.log("Server Live"));
+
 
 
 
