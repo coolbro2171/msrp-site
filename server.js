@@ -165,6 +165,16 @@ app.get('/documents', (req, res) => {
     }
 });
 
+// Account Settings
+app.get('/settings', (req, res) => {
+    if (req.session && req.session.isLoggedIn) {
+        res.sendFile(path.join(__dirname, 'settings.html'));
+    } else {
+        res.redirect('/login');
+    }
+});
+
+
 // Admin Panel (Only for high-ranking staff)
 app.get('/admin', (req, res) => {
     if (req.session && req.session.isLoggedIn) {
@@ -192,5 +202,6 @@ app.get('/admin', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP running on port ${PORT}`));
+
 
 
