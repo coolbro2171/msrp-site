@@ -21,7 +21,7 @@
             overflow: hidden;
         }
 
-        /* Top Nav */
+        /* Top Nav for Auth Buttons */
         .top-nav {
             position: absolute;
             top: 0;
@@ -49,7 +49,7 @@
             transform: translateY(-2px);
         }
 
-        /* Sidebar */
+        /* Sidebar Styling */
         .sidebar {
             width: 280px;
             background: var(--sidebar-bg);
@@ -64,6 +64,7 @@
             font-size: 1.4rem; 
             color: var(--primary-purple);
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .sidebar-btn {
@@ -80,8 +81,9 @@
         }
 
         .sidebar-btn.active { background: var(--primary-purple); color: white; }
+        .sidebar-btn:hover:not(.active) { background: rgba(255, 255, 255, 0.05); color: white; }
 
-        /* Content */
+        /* Main Content Area */
         .content {
             flex-grow: 1;
             padding: 120px 80px;
@@ -100,7 +102,7 @@
         h1 { font-size: 3.5rem; margin-bottom: 25px; font-weight: 800; }
         p { font-size: 1.15rem; color: #b0b0b0; line-height: 1.8; }
 
-        /* Blog */
+        /* Blog Card Styling */
         .blog-card {
             background: var(--glass);
             padding: 25px;
@@ -110,6 +112,44 @@
         }
 
         .blog-date { color: var(--primary-purple); font-weight: 700; margin-bottom: 5px; }
+
+        /* Founders & Credits List Styling */
+        .list-container { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+
+        .list-item {
+            background: var(--glass);
+            padding: 18px 25px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            width: fit-content;
+            min-width: 450px;
+            transition: 0.3s ease;
+        }
+
+        .list-item:hover {
+            transform: translateX(8px);
+            background: rgba(96, 6, 143, 0.08);
+            border-color: rgba(96, 6, 143, 0.3);
+        }
+
+        .item-main { font-weight: 700; font-size: 1.1rem; color: #ffffff; }
+
+        .item-divider {
+            margin: 0 20px;
+            color: var(--primary-purple);
+            font-weight: 900;
+            font-size: 1.2rem;
+        }
+
+        .item-sub {
+            color: var(--primary-purple);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
@@ -120,7 +160,7 @@
     </nav>
 
     <div class="sidebar">
-        <h2>MSRP OFFICIAL SITE</h2>
+        <h2>MSRP</h2>
         <button class="sidebar-btn active" onclick="showTab('home', this)">Home</button>
         <button class="sidebar-btn" onclick="showTab('blog', this)">Blog Updates</button>
         <button class="sidebar-btn" onclick="showTab('founders', this)">Founders</button>
@@ -138,38 +178,75 @@
             <div class="blog-card">
                 <div class="blog-date">JAN 30, 2026</div>
                 <h3>Portal 2.0 Live</h3>
-                <p>Login system and session management optimized.</p>
+                <p>Login system, session management, and UI layouts have been fully optimized.</p>
             </div>
         </div>
 
         <div id="founders" class="tab-content">
             <h1>Our Founders</h1>
-            <p>lil_kai287, Mercy, Hey_clay, Rthecool20</p>
+            <p style="margin-bottom: 30px;">The visionary leadership team behind the MSRP community, dedicated to creating a professional and immersive experience for all members.</p>
+            
+            <div class="list-container">
+                <div class="list-item">
+                    <span class="item-main">lil_kai287</span>
+                    <span class="item-divider">|</span>
+                    <span class="item-sub">Owner / Lead Founder</span>
+                </div>
+                <div class="list-item">
+                    <span class="item-main">Mercy</span>
+                    <span class="item-divider">|</span>
+                    <span class="item-sub">Co-Owner</span>
+                </div>
+                <div class="list-item">
+                    <span class="item-main">Hey_clay</span>
+                    <span class="item-divider">|</span>
+                    <span class="item-sub">Founder</span>
+                </div>
+                <div class="list-item">
+                    <span class="item-main">Rthecool20</span>
+                    <span class="item-divider">|</span>
+                    <span class="item-sub">Founder</span>
+                </div>
+            </div>
         </div>
 
         <div id="credits" class="tab-content">
             <h1>Technical Credits</h1>
-            <p>cool_bro2171 — Lead Developer</p>
+            <p style="margin-bottom: 30px;">Recognition of the developers and contributors who built and maintain the MSRP infrastructure and web portal.</p>
+            
+            <div class="list-container">
+                <div class="list-item">
+                    <span class="item-main">cool_bro2171</span>
+                    <span class="item-divider">|</span>
+                    <span class="item-sub">Lead Portal Developer</span>
+                </div>
+                <div class="list-item">
+                    <span class="item-main">MSRP Dev Team</span>
+                    <span class="item-divider">|</span>
+                    <span class="item-sub">System Maintenance</span>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // IMMEDIATE Auth Check to prevent "Lag"
+        // FAST-AUTH: Recognize logged in users immediately
         (async function init() {
             try {
                 const res = await fetch('/api/check-auth');
                 const data = await res.json();
                 if (data.loggedIn) {
                     document.getElementById('auth-nav').innerHTML = `
-                        <span style="color: #888; margin-right: 15px;">Logged in as ${data.username}</span>
+                        <span style="color: #888; margin-right: 15px;">User: ${data.username}</span>
                         <a href="/dashboard" style="background: var(--primary-purple);">Go to Dashboard</a>
-                        <a href="/logout" style="font-size: 0.8rem; background: transparent; border: none;">Logout</a>
+                        <a href="/logout" style="font-size: 0.8rem; background: transparent; border: none; opacity: 0.6;">Logout</a>
                     `;
                     document.getElementById('welcome-title').innerText = `Welcome back, ${data.username}`;
                 }
-            } catch (e) { console.log("Guest Session"); }
+            } catch (e) { console.log("Guest Session Active"); }
         })();
 
+        // TAB SWITCHING LOGIC
         function showTab(tabId, btn) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
@@ -179,7 +256,6 @@
     </script>
 </body>
 </html>
-
 
 
 
