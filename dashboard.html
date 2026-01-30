@@ -3,254 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MSRP | Dashboard</title>
-    <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/icons/1198422904178749500/6bfeee54c636ac47d339a198ff6843d2.webp">
+    <title>MSRP | Staff Dashboard</title>
     <style>
-        body, html {
-            height: 100%;
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
+        :root { --purple: #60068f; --dark: #0a0a0a; --glass: rgba(255, 255, 255, 0.05); }
+        body { background: var(--dark); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; }
+        
+        .sidebar { width: 260px; background: #111; border-right: 1px solid #222; padding: 30px; }
+        .main-content { flex-grow: 1; padding: 60px; overflow-y: auto; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        .card { background: var(--glass); padding: 30px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.1); }
+        
+        .btn-info { 
+            text-decoration: none; color: white; background: var(--purple); 
+            padding: 10px 20px; border-radius: 8px; font-weight: bold; transition: 0.3s;
         }
-
-        /* Background image with blur and scaling to match your screenshot */
-        .bg-blur {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            background-image: url('https://cdn.discordapp.com/attachments/1423737735159484537/1464867032859410626/Screenshot_2026-01-24_at_11.49.57_PM.png?ex=6977affc&is=69765e7c&hm=229618631d2a4201320d7914ce099e80f605e510bc9d0b1f70058234dfeabd1e&');
-            background-size: cover;
-            background-position: center;
-            filter: blur(10px);
-            transform: scale(1.1);
-        }
-
-        /* Subtle dark overlay for readability */
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.2);
-            z-index: 0;
-        }
-
-        .dashboard-container {
-            background: white;
-            padding: 50px 40px;
-            border-radius: 18px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            width: 100%;
-            max-width: 480px;
-            text-align: center;
-            position: relative;
-            z-index: 1;
-        }
-
-        h1 {
-            font-size: 2.2rem;
-            color: #222;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-
-        p {
-            color: #666;
-            font-size: 1rem;
-            margin-bottom: 30px;
-        }
-
-        .btn-group {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 16px;
-            text-decoration: none;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 1.1rem;
-            box-sizing: border-box;
-            transition: background 0.2s, transform 0.1s;
-        }
-
-        /* Elements hidden by default */
-        #docs-btn, #admin-btn, #pending-status {
-            display: none;
-        }
-
-        .btn-docs {
-            background-color: #007bff;
-            color: white;
-        }
-
-        .btn-docs:hover {
-            background-color: #0069d9;
-        }
-
-        .btn-info {
-            background-color: #60068f;
-            color: white;
-        }
-
-        .btn-info:hover {
-            background-color: #52047a;
-        }
-
-        .btn-admin {
-            background-color: #343a40;
-            color: white;
-        }
-
-        .btn-admin:hover {
-            background-color: #23272b;
-        }
-
-        .btn-settings {
-            background-color: #6c757d;
-            color: white;
-        }
-
-        .btn-settings:hover {
-            background-color: #5a6268;
-        }
-
-        /* Pending status styling for "User" role */
-        .status-box {
-            background-color: #f8f9fa;
-            border: 2px dashed #dee2e6;
-            color: #6c757d;
-            padding: 16px;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 1.1rem;
-        }
-
-        .btn:active {
-            transform: scale(0.98);
-        }
-
-        .logout-link {
-            margin-top: 15px;
-            display: block;
-            width: 100%;
-            padding: 16px;
-            text-decoration: none;
-            border-radius: 10px;
-            font-weight: bold;
-            font-size: 1.05rem;
-            box-sizing: border-box;
-            transition: background 0.2s, transform 0.1s;
-            background-color: #ab0303;
-            color: white;
-        }
-
-        .logout-link:hover {
-            opacity: 0.8;
-            text-decoration: underline;
-        }
-
-        .dev-text {
-            margin-top: 10px;
-            font-size: 0.7rem;
-            color: #555;
-        }
+        .btn-info:hover { opacity: 0.8; transform: translateY(-2px); }
+        
+        .user-welcome { font-size: 2rem; font-weight: 800; }
     </style>
 </head>
 <body>
 
-<div class="bg-blur"></div>
-<div class="overlay"></div>
+    <div class="sidebar">
+        <h2 style="color: var(--purple);">MSRP STAFF</h2>
+        <hr style="border: 0.5px solid #222; margin: 20px 0;">
+        <p>Menu</p>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <a href="#" style="color: white; text-decoration: none;">Profile</a>
+            <a href="/documents" style="color: #888; text-decoration: none;">Documents</a>
+            <a href="/" style="color: var(--purple); text-decoration: none; font-weight: bold;">View Info Page</a>
+        </div>
+    </div>
 
-<div class="dashboard-container">
-    <h1 id="welcome-text">Welcome Back!</h1>
-    <p>Access the MSRP staff resources below.</p>
-    
-    <div class="btn-group">
-        <a href="/" id="info-btn" class="btn btn-info">View Information</a>
-        
-        <a href="/documents" id="docs-btn" class="btn btn-docs">View Staff Documents</a>
-        
-        <a href="/admin" id="admin-btn" class="btn btn-admin">Admin Panel</a>
-
-        <div id="pending-status" class="status-box">
-            Pending Permission...
+    <div class="main-content">
+        <div class="header">
+            <div class="user-welcome" id="display-name">Loading...</div>
+            <a href="/logout" style="color: #ff4444; text-decoration: none;">Logout</a>
         </div>
 
-        <a href="/settings" class="btn btn-settings">Account Settings</a>
+        <div class="card">
+            <h3>Staff Notice</h3>
+            <p>Welcome to the MSRP Staff Portal. Use the links on the left to navigate your duties. Please ensure you stay logged in while on duty.</p>
+        </div>
     </div>
-    <div>
-    
-    <a href="/logout" class="logout-link">Logout</a>
-</div>
-<div class="dev-text">    
-    <p>Website Made and Managed by the MSRP Development Team</p>
-</div>
 
-<script>
-    async function initDashboard() {
-        try {
-            const res = await fetch('/api/me');
-            if (res.ok) {
-                const data = await res.json();
-                
-                // Set personalized welcome message
-                document.getElementById('welcome-text').innerText = `Welcome, ${data.username}!`;
-                
-                const role = data.role;
+    <script>
+        // GATEKEEPER SCRIPT
+        async function verifyAccess() {
+            try {
+                const response = await fetch('/api/check-auth');
+                const data = await response.json();
 
-                if (role === 'User') {
-                    // Show pending box for basic users
-                    document.getElementById('pending-status').style.display = 'block';
+                if (!data.loggedIn) {
+                    // If not logged in, boot to login page immediately
+                    window.location.href = '/login';
                 } else {
-                    // Show documents button for Staff and higher
-                    document.getElementById('docs-btn').style.display = 'block';
-                    
-                    // Show admin panel button for Admin and higher (including Management/Owner)
-                    const privilegedRoles = ['Admin', 'Management', 'Owner'];
-                    if (privilegedRoles.includes(role)) {
-                        document.getElementById('admin-btn').style.display = 'block';
-                    }
+                    // Update the UI with the username
+                    document.getElementById('display-name').innerText = `Welcome, ${data.username}`;
                 }
-            } else {
-                // Redirect to login if session is invalid
-                window.location.href = '/';
+            } catch (err) {
+                window.location.href = '/login';
             }
-        } catch (err) {
-            console.error("Failed to load user info:", err);
         }
-    }
-    initDashboard();
-</script>
 
+        // Run as soon as the file is parsed
+        verifyAccess();
+    </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
