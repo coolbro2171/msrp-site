@@ -7,15 +7,14 @@ const MongoStore = require('connect-mongo');
 
 const app = express();
 
-// Required for Render/Cloud deployment stability
 app.set('trust proxy', 1); 
 
 // --- DATABASE CONNECTION ---
 const MONGODB_URI = "mongodb+srv://cool_bro2171:Leonardo3@msrp-site.axszmf7.mongodb.net/MSRP_Database?retryWrites=true&w=majority&appName=MSRP-Site";
 
 mongoose.connect(MONGODB_URI)
-    .then(() => console.log("Database Connected Successfully"))
-    .catch(err => console.error("Database Connection Error:", err));
+    .then(() => console.log("MongoDB Connected"))
+    .catch(err => console.error("MongoDB Error:", err));
 
 // --- USER SCHEMA ---
 const userSchema = new mongoose.Schema({
@@ -46,46 +45,72 @@ app.use(session({
     cookie: { 
         secure: false, 
         httpOnly: true,
-        maxAge: 1000 * 60 * 60 * 24 // 24 Hours
+        maxAge: 1000 * 60 * 60 * 24 
     }
 }));
 
-// --- AUTH CHECK API (Fixes Information Page Recognition) ---
+// --- API: AUTH & ADMIN ---
+
+// Check login status for frontend
 app.get('/api/check-auth', (req, res) => {
-    if (req.session.isLoggedIn) {
+    if (req.session && req.session.isLoggedIn) {
         res.json({ loggedIn: true, username: req.session.username });
     } else {
         res.json({ loggedIn: false });
     }
 });
 
-// --- AUTH ROUTES ---
-
-app.post('/register', async (req, res) => {
+// Admin Only: Get all users
+app.get('/api/admin/users', async (req, res) => {
+    if (!req.session.isLoggedIn) return res.status(401).send('Unauthorized');
+    
     try {
-        const { username, password } = req.body;
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ username, password: hashedPassword });
-        await newUser.save();
-        res.redirect('/login');
+        // Only allow Admin, Management, or Owner to see this list
+        const currentUser = await User.findOne({ username: req.session.username });
+        if (!['Admin', 'Management', 'Owner'].includes(currentUser.role)) {
+            return res.status(403).send('Forbidden');
+        }
+
+        const users = await User.find({}, '-password'); // Exclude passwords for safety
+        res.json(users);
     } catch (err) {
-        res.status(400).send("Registration failed.");
+        res.status(500).send('Error fetching users');
     }
 });
 
+// Admin Only: Update User Roles/Badges
+app.post('/api/admin/update-user', async (req, res) => {
+    if (!req.session.isLoggedIn) return res.status(401).send('Unauthorized');
+
+    try {
+        const { targetUsername, updates } = req.body;
+        
+        // Ensure the person doing the update is an Admin+
+        const adminUser = await User.findOne({ username: req.session.username });
+        if (!['Admin', 'Management', 'Owner'].includes(adminUser.role)) {
+            return res.status(403).send('Unauthorized access');
+        }
+
+        await User.findOneAndUpdate({ username: targetUsername }, updates);
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).send('Update failed');
+    }
+});
+
+// --- AUTH ROUTES ---
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
     try {
         const user = await User.findOne({ username });
         if (user && await bcrypt.compare(password, user.password)) {
-            if (user.isBanned) return res.status(403).send('Account Banned');
+            if (user.isBanned) return res.status(403).send('Banned');
 
             req.session.username = user.username;
             req.session.isLoggedIn = true;
 
-            // FORCE SAVE then go to Dashboard (Fixes the "Laggy" redirect)
             req.session.save((err) => {
-                if (err) return res.status(500).send("Login failed");
+                if (err) return res.status(500).send("Login Error");
                 res.redirect('/dashboard');
             });
         } else {
@@ -98,11 +123,11 @@ app.post('/login', async (req, res) => {
 
 app.get('/logout', (req, res) => {
     req.session.destroy();
+    res.clearCookie('connect.sid');
     res.redirect('/');
 });
 
 // --- PAGE NAVIGATION ---
-
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
 app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
@@ -124,4 +149,5 @@ app.get('/admin', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`MSRP Portal Live on Port ${PORT}`));
+app.listen(PORT, () => console.log(`MSRP running on port ${PORT}`));
+
