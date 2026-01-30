@@ -6,29 +6,38 @@
     <title>MSRP | Internal Staff Documents</title>
     <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/icons/1198422904178749500/6bfeee54c636ac47d339a198ff6843d2.webp">
     <style>
+        :root {
+            --primary-purple: #60068f;
+            --glass: rgba(255, 255, 255, 0.05);
+            --bg-dark: #0a0a0a;
+            --sidebar-bg: #0f0f0f;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
+            background-color: var(--bg-dark);
+            color: white;
             margin: 0;
             padding: 20px;
             height: 100vh;
             display: flex;
             flex-direction: column;
             box-sizing: border-box;
+            background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a);
         }
 
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: white;
+            background: var(--sidebar-bg);
             padding: 15px 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
             margin-bottom: 20px;
         }
 
-        h1 { color: #333; margin: 0; font-size: 1.5rem; }
+        h1 { color: var(--primary-purple); margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px; }
 
         .main-layout {
             display: grid;
@@ -39,159 +48,126 @@
         }
 
         .sidebar {
-            background: white;
+            background: var(--sidebar-bg);
             padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
             overflow-y: auto;
         }
 
         .doc-section h2 {
-            font-size: 0.9rem;
-            color: #999;
+            font-size: 0.8rem;
+            color: var(--primary-purple);
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 20px 0 10px 0;
+            letter-spacing: 2px;
+            margin: 25px 0 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 5px;
         }
 
-        /* Hidden by default until role is verified */
         .locked-section { display: none; }
 
         .doc-item {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            padding: 12px;
+            background: var(--glass);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 15px;
             border-radius: 8px;
             margin-bottom: 10px;
             cursor: pointer;
-            transition: 0.2s;
+            transition: 0.3s;
             display: block;
             text-align: left;
             width: 100%;
-            font-family: inherit;
+            color: white;
         }
 
         .doc-item:hover {
-            background-color: #eef2ff;
-            border-left: 4px solid #007bff;
+            background-color: rgba(96, 6, 143, 0.2);
+            border-left: 4px solid var(--primary-purple);
+            transform: translateX(5px);
         }
 
-        .doc-name {
-            display: block;
-            font-weight: bold;
-            color: #333;
-            font-size: 0.95rem;
-        }
-
-        .doc-meta {
-            font-size: 0.75rem;
-            color: #777;
-        }
+        .doc-name { display: block; font-weight: bold; font-size: 0.95rem; }
+        .doc-meta { font-size: 0.75rem; color: #888; }
 
         .viewer-container {
-            background: #333;
+            background: #111;
             border-radius: 12px;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
-        #doc-viewer {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
+        #doc-viewer { width: 100%; height: 100%; border: none; }
 
         .no-doc-selected {
-            color: white;
+            color: #555;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100%;
             text-align: center;
-            padding: 40px;
         }
 
-        .nav-link { text-decoration: none; color: #007bff; font-weight: bold; }
+        .nav-link { text-decoration: none; color: var(--primary-purple); font-weight: bold; transition: 0.3s; }
+        .nav-link:hover { color: white; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h1>Internal Staff Documents</h1>
-    <p class="center-text">Website Made and Managed by the MSRP Development Team</p>
-    <a href="/dashboard" class="nav-link">← Return to Dashboard</a>
+    <h1>Staff Documents</h1>
+    <p style="color: #666; font-size: 0.8rem;">Managed by MSRP Development</p>
+    <a href="/dashboard" class="nav-link">← Dashboard</a>
 </div>
 
 <div class="main-layout">
     <div class="sidebar">
         <div class="doc-section">
             <h2>Community</h2>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1cZw44mW0Qsx85zLAVLv9cnTDq8QYnUBnY4yixLj54nc/edit?tab=t.0')">
+            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1cZw44mW0Qsx85zLAVLv9cnTDq8QYnUBnY4yixLj54nc/preview')">
                 <span class="doc-name">In-Game Rules</span>
-                <span class="doc-meta">Google Document</span>
+                <span class="doc-meta">View Guidelines</span>
             </button>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/13kqDPdLtxAyb_UP1oitiQzlEb85ibbedhey2TmJNkqk/edit?tab=t.0')">
+            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/13kqDPdLtxAyb_UP1oitiQzlEb85ibbedhey2TmJNkqk/preview')">
                 <span class="doc-name">Discord Rules</span>
-                <span class="doc-meta">Google Document</span>
+                <span class="doc-meta">View Guidelines</span>
             </button>
         </div>
 
         <div class="doc-section">
             <h2>Staff Only</h2>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/149sjVJeB1BILmEZkDJ3gtQchYoGrk5bS6atUzkuD1zY/edit?tab=t.0')">
+            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/149sjVJeB1BILmEZkDJ3gtQchYoGrk5bS6atUzkuD1zY/preview')">
                 <span class="doc-name">Staff Handbook</span>
-                <span class="doc-meta">Google Document</span>
+                <span class="doc-meta">Standard Operating Procedures</span>
             </button>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/spreadsheets/d/1MA2oDwq4h6-zAYT6aIXM_6DzilBjCL0jgX8n57GjXuo/edit?gid=0#gid=0')">
+            <button class="doc-item" onclick="viewDoc('https://docs.google.com/spreadsheets/d/1MA2oDwq4h6-zAYT6aIXM_6DzilBjCL0jgX8n57GjXuo/preview')">
                 <span class="doc-name">Punishment Guide</span>
-                <span class="doc-meta">Google Spreadsheet</span>
-            </button>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1ai0WRMd__yLuRRD2RehWPzeg9MPmHoZ5D3MPg7pxq4c/edit?tab=t.0#heading=h.p5mm2cflk17k')">
-                <span class="doc-name">Ticket TOS</span>
-                <span class="doc-meta">Google Document</span>
-            </button>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1MCE5gfyBGc79CTjMLSHMQmi_JRArDGSLY7ZT7Na-ALA/edit?tab=t.0')">
-                <span class="doc-name">In-Game Messages</span>
-                <span class="doc-meta">Google Document</span>
+                <span class="doc-meta">Disciplinary Matrix</span>
             </button>
         </div>
 
         <div class="doc-section locked-section" id="admin-section">
             <h2>HR Staff Only</h2>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/149sjVJeB1BILmEZkDJ3gtQchYoGrk5bS6atUzkuD1zY/edit?tab=t.0')">
+            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/149sjVJeB1BILmEZkDJ3gtQchYoGrk5bS6atUzkuD1zY/preview')">
                 <span class="doc-name">HR Handbook</span>
-                <span class="doc-meta">Google Document</span>
-            </button>
-             <button class="doc-item" onclick="viewDoc('https://docs.google.com/presentation/d/13uKjPdj5BRzSNHzxpsCNkwEFHUg_d_1ub5Z9kANGcQU/edit')">
-                <span class="doc-name">Staff Training Slide</span>
-                <span class="doc-meta">Google Slide</span>
-            </button>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1XdJnw9jpsk0x_ALyE320ZiYDGYNugtXg7Sraa5Ao-R4/edit?usp=sharing')">
-                <span class="doc-name">Staff Training Guide</span>
-                <span class="doc-meta">Google Document</span>
+                <span class="doc-meta">Management Guide</span>
             </button>
         </div>
 
         <div class="doc-section locked-section" id="management-section">
             <h2>SHR Staff Only</h2>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/19s7TtpioP4faID7k0bqOgQeMtI37jbcNHZo2p0tApNQ/edit?tab=t.0#heading=h.17tro2dwa15q')">
+            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/19s7TtpioP4faID7k0bqOgQeMtI37jbcNHZo2p0tApNQ/preview')">
                 <span class="doc-name">SHR Handbook</span>
-                <span class="doc-meta">Google Document</span>
-            </button>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1u-iU8S8-5oT1U3UQGk5B_eOX40a43hBqiEZp4Gltk4M/edit?usp=sharing')">
-                <span class="doc-name">Interview Questions</span>
-                <span class="doc-meta">Google Document</span>
+                <span class="doc-meta">Executive Directives</span>
             </button>
         </div>
     </div>
 
-    <div class="viewer-container" id="viewer-container">
+    <div class="viewer-container">
         <div class="no-doc-selected" id="placeholder">
-            <div>
-                <p>Select a document from the sidebar to view it here.</p>
-            </div>
+            <p>Select a document to begin viewing</p>
         </div>
         <iframe id="doc-viewer" style="display: none;"></iframe>
     </div>
@@ -199,10 +175,6 @@
 
 <script>
     function viewDoc(url) {
-        if(url === '#') {
-            alert('This document link has not been set yet.');
-            return;
-        }
         const viewer = document.getElementById('doc-viewer');
         const placeholder = document.getElementById('placeholder');
         placeholder.style.display = 'none';
@@ -210,10 +182,10 @@
         viewer.src = url;
     }
 
-    // Role-based visibility logic
     async function checkAccess() {
         try {
-            const response = await fetch('/api/me');
+            // UPDATED: Now matches the /api/user-info route in your server.js
+            const response = await fetch('/api/user-info');
             const user = await response.json();
             
             const adminRoles = ['Admin', 'Management', 'Owner'];
@@ -226,10 +198,9 @@
                 document.getElementById('management-section').style.display = 'block';
             }
         } catch (err) {
-            console.error("Failed to verify role access.");
+            console.error("Access check failed.");
         }
     }
-
     checkAccess();
 </script>
 
