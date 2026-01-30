@@ -127,17 +127,59 @@ app.get('/logout', (req, res) => {
     res.redirect('/');
 });
 
-// --- PAGE NAVIGATION ---
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
-app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
+// --- PUBLIC ROUTES ---
 
+// Main Info/Landing Page
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Login Page
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+// Register Page
+app.get('/register', (req, res) => {
+    res.sendFile(path.join(__dirname, 'register.html'));
+});
+
+
+// --- PROTECTED ROUTES (Require Login) ---
+
+// Staff Dashboard
 app.get('/dashboard', (req, res) => {
-    if (req.session.isLoggedIn) {
+    if (req.session && req.session.isLoggedIn) {
         res.sendFile(path.join(__dirname, 'dashboard.html'));
     } else {
         res.redirect('/login');
     }
+});
+
+// Server Documents
+app.get('/documents', (req, res) => {
+    if (req.session && req.session.isLoggedIn) {
+        res.sendFile(path.join(__dirname, 'documents.html'));
+    } else {
+        res.redirect('/login');
+    }
+});
+
+// Admin Panel (Only for high-ranking staff)
+app.get('/admin', (req, res) => {
+    if (req.session && req.session.isLoggedIn) {
+        res.sendFile(path.join(__dirname, 'admin.html'));
+    } else {
+        res.redirect('/login');
+    }
+});
+
+
+// --- FALLBACK ROUTE ---
+
+// This catches any 404/Unknown pages and sends them to the Info Page
+app.get('*', (req, res) => {
+    res.redirect('/');
 });
 
 app.get('/admin', (req, res) => {
@@ -150,4 +192,5 @@ app.get('/admin', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP running on port ${PORT}`));
+
 
