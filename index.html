@@ -96,6 +96,7 @@
     <div class="sidebar">
         <h2>Minnesota State Roleplay</h2>
         <button class="sidebar-btn active" onclick="showTab('home', this)">Home</button>
+        <button class="sidebar-btn active" onclick="showTab('blog', this)">Blog</button>
         <button class="sidebar-btn" onclick="showTab('founders', this)">Founders</button>
         <button class="sidebar-btn" onclick="showTab('credits', this)">Credits</button>
     </div>
@@ -124,7 +125,30 @@
                 <li><strong>• cool_bro2171</strong> - Lead Developer</li>
             </ul>
         </div>
+        <div id="blog" class="tab-content">
+    <h1>Latest Updates</h1>
+    <p>Stay up to date with the latest MSRP news and patch notes.</p>
+
+    <div class="blog-container">
+        <div class="blog-card">
+            <div class="blog-date">JAN 30, 2026</div>
+            <h3>Server Milestone</h3>
+            <p>The Discord Server has successfully reached 5,000 members.</p>
+        </div>
+
+        <div class="blog-card">
+            <div class="blog-date">JAN 30, 2026</div>
+            <h3>New Portal Launch</h3>
+            <p>Today marks the grand opening of our new web portal. Staff can now register and access documents directly.</p>
+        </div>
+
+        <div class="blog-card">
+            <div class="blog-date">JAN 25, 2026</div>
+            <h3>Server Maintenance</h3>
+            <p>We successfully migrated our database to a new Replica Set to ensure 100% uptime for our users.</p>
+        </div>
     </div>
+</div>
 
     <script>
         function showTab(tabId, btn) {
@@ -140,6 +164,7 @@
     </script>
 </body>
 </html>
+
 
 
 
