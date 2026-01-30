@@ -3,133 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MSRP | Login</title>
-    <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/icons/1198422904178749500/6bfeee54c636ac47d339a198ff6843d2.webp">
+    <title>MSRP | Welcome</title>
     <style>
-        body, html {
-            height: 100%;
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+
+        body {
+            background: #121212;
+            color: white;
+            display: flex;
+            height: 100vh;
             overflow: hidden;
         }
 
-        .bg-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            /* Background color fallback */
-            background-color: #1a1a1a; 
-            /* Your Image Link */
-            background-image: url('https://cdn.discordapp.com/attachments/1423737735159484537/1464867032859410626/Screenshot_2026-01-24_at_11.49.57_PM.png?ex=6977affc&is=69765e7c&hm=229618631d2a4201320d7914ce099e80f605e510bc9d0b1f70058234dfeabd1e&');
-            background-size: cover;
-            background-position: center;
-            /* Applying blur and scale to prevent white borders */
-            filter: blur(12px);
-            -webkit-filter: blur(12px);
-            transform: scale(1.1);
-        }
-
-        .overlay {
+        /* Top Bar */
+        .top-nav {
             position: absolute;
             top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.4);
+            right: 0;
+            padding: 20px 40px;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1;
+            gap: 20px;
+            z-index: 10;
         }
 
-        .login-box {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-            width: 100%;
-            max-width: 360px;
-            text-align: center;
-        }
-
-        h2 { color: #333; margin-bottom: 25px; font-weight: 700; }
-
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 1rem;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #007bff;
+        .top-nav a {
             color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
+            text-decoration: none;
             font-weight: bold;
-            font-size: 1rem;
-            margin-top: 15px;
+            padding: 8px 16px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
             transition: 0.3s;
         }
 
-        button:hover { background-color: #0056b3; }
+        .top-nav a:hover { background: #007bff; }
 
-        .link-text {
-            margin-top: 20px;
-            font-size: 0.9rem;
-            color: #555;
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: #1a1a1a;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            padding: 40px 20px;
         }
 
-        .link-text a {
-            color: #007bff;
-            text-decoration: none;
-            font-weight: bold;
+        .sidebar h2 { margin-bottom: 30px; font-size: 1.5rem; color: #007bff; }
+
+        .sidebar-btn {
+            background: none;
+            border: none;
+            color: #aaa;
+            text-align: left;
+            padding: 15px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.3s;
+            border-radius: 8px;
+            margin-bottom: 5px;
         }
 
-        .dev-text {
-            margin-top: 10px;
-            font-size: 0.7rem;
-            color: #555;
+        .sidebar-btn:hover, .sidebar-btn.active {
+            background: rgba(0, 123, 255, 0.2);
+            color: white;
         }
+
+        /* Main Content Area */
+        .content {
+            flex-grow: 1;
+            padding: 100px 60px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .tab-content { display: none; max-width: 800px; line-height: 1.6; }
+        .tab-content.active { display: block; animation: fadeIn 0.5s ease; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h1 { font-size: 3rem; margin-bottom: 20px; }
+        p { font-size: 1.2rem; color: #ccc; }
     </style>
 </head>
 <body>
 
-<div class="bg-container"></div>
+    <nav class="top-nav">
+        <a href="/login">Login</a>
+        <a href="/register">Register</a>
+    </nav>
 
-<div class="overlay">
-    <div class="login-box">
-        <h2>MSRP Staff Login</h2>
-        <form action="/login" method="POST">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Sign In</button>
-        </form>
-        <div class="link-text">
-            Don't have an account? <a href="/register">Register here</a>
+    <div class="sidebar">
+        <h2>MSRP</h2>
+        <button class="sidebar-btn active" onclick="showTab('home', this)">Home</button>
+        <button class="sidebar-btn" onclick="showTab('founders', this)">Founders</button>
+        <button class="sidebar-btn" onclick="showTab('credits', this)">Credits</button>
+    </div>
+
+    <div class="content">
+        <div id="home" class="tab-content active">
+            <h1>Welcome to MSRP</h1>
+            <p>This is the official portal for the MSRP community. Here you can access server documents, manage your staff profile, and view our upcoming projects.</p>
         </div>
-        <div class="dev-text">
-            <p>Website Made and Managed by the MSRP Development Team</p>
+
+        <div id="founders" class="tab-content">
+            <h1>Our Founders</h1>
+            <p>MSRP was built by a dedicated team of developers and roleplay enthusiasts.</p>
+            <ul style="margin-top:20px; list-style: none;">
+                <li><strong>Founder 1</strong> - Lead Development</li>
+                <li><strong>Founder 2</strong> - Community Management</li>
+            </ul>
+        </div>
+
+        <div id="credits" class="tab-content">
+            <h1>Credits</h1>
+            <p>Special thanks to the following contributors:</p>
+            <ul style="margin-top:20px; list-style: none; color: #007bff;">
+                <li>• Design Team</li>
+                <li>• Beta Testers</li>
+                <li>• Hosting Partners</li>
+            </ul>
         </div>
     </div>
-</div>
 
+    <script>
+        function showTab(tabId, btn) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            // Remove active class from buttons
+            document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+    </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
