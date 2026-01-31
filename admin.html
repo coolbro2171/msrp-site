@@ -109,7 +109,7 @@
                 let badges = [];
                 if (user.isDeveloper) badges.push('<span class="badge-tag">DEVELOPER</span>');
                 if (user.isStaffInstructor) badges.push('<span class="badge-tag">STAFF INSTRUCTOR</span>');
-                if (user.hasDatabaseAccess) badges.push('<span class="badge-tag" style="color:#bf2e7e">DATABASE ACCESS</span>');
+                if (user.isDatabaseAccess) badges.push('<span class="badge-tag" style="color:#bf2e7e">DATABASE ACCESS</span>');
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
