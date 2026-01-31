@@ -42,7 +42,7 @@ app.use(express.static(__dirname));
 
 app.use(session({
     secret: 'msrp-secure-v11-final-build',
-    resave: false,
+    resave: true,
     saveUninitialized: false,
     store: MongoStore.create({ mongoUrl: MONGODB_URI }),
     cookie: { secure: false, httpOnly: true, maxAge: 1000 * 60 * 60 * 24 }
@@ -200,6 +200,7 @@ app.get('*', (req, res) => res.redirect('/'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP Server running on port ${PORT}`));
+
 
 
 
