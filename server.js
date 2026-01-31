@@ -59,6 +59,17 @@ const auditSchema = new mongoose.Schema({
 });
 const AuditLog = mongoose.model('AuditLog', auditSchema, 'audit_logs');
 
+// Feedback Schema (Bugs & Suggestions)
+const feedbackSchema = new mongoose.Schema({
+    username: { type: String, required: true },
+    type: { type: String, enum: ['Bug', 'Suggestion'], required: true },
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    status: { type: String, default: 'Pending' }, // Pending, Reviewed, Resolved
+    createdAt: { type: Date, default: Date.now }
+});
+const Feedback = mongoose.model('Feedback', feedbackSchema, 'feedback_submissions');
+
 // --- MIDDLEWARE ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -66,7 +77,7 @@ app.use(express.static(__dirname));
 
 app.use(session({
     secret: 'msrp-secure-v11-final-build',
-    resave: true,               
+    resave: true,                
     saveUninitialized: false,   
     store: MongoStore.create({ 
         mongoUrl: MONGODB_URI,
@@ -102,7 +113,7 @@ app.get('/api/blog-updates', async (req, res) => {
     }
 });
 
-// --- ADMIN API ENDPOINTS ---
+// --- USER & FEEDBACK API ---
 
 app.get('/api/user-info', async (req, res) => {
     if (!req.session.isLoggedIn || !req.session.username) {
@@ -115,6 +126,26 @@ app.get('/api/user-info', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "Server Error" }); }
 });
 
+app.post('/api/reports/submit', async (req, res) => {
+    if (!req.session.isLoggedIn) return res.status(401).send("Unauthorized");
+    try {
+        const { type, title, description } = req.body;
+        if (!type || !title || !description) return res.status(400).send("Missing fields");
+
+        const newFeedback = new Feedback({
+            username: req.session.username,
+            type,
+            title,
+            description
+        });
+
+        await newFeedback.save();
+        res.json({ success: true });
+    } catch (err) { res.status(500).send("Feedback submission failed"); }
+});
+
+// --- ADMIN API ENDPOINTS ---
+
 app.get('/api/admin/users', async (req, res) => {
     if (!req.session.isLoggedIn) return res.status(401).json({ error: "Unauthorized" });
     const adminUser = await User.findOne({ username: req.session.username });
@@ -124,6 +155,29 @@ app.get('/api/admin/users', async (req, res) => {
         const users = await User.find({}, '-password');
         res.json(users);
     } catch (err) { res.status(500).json({ error: "Server Error" }); }
+});
+
+app.get('/api/admin/reports', async (req, res) => {
+    if (!req.session.isLoggedIn) return res.status(401).json({ error: "Unauthorized" });
+    const adminUser = await User.findOne({ username: req.session.username });
+    if (!adminUser || !['Admin', 'Management', 'Owner'].includes(adminUser.role)) return res.status(403).json({ error: "Forbidden" });
+
+    try {
+        const reports = await Feedback.find().sort({ createdAt: -1 });
+        res.json(reports);
+    } catch (err) { res.status(500).json({ error: "Failed to fetch reports" }); }
+});
+
+app.post('/api/admin/reports/update', async (req, res) => {
+    if (!req.session.isLoggedIn) return res.status(401).send("Unauthorized");
+    const adminUser = await User.findOne({ username: req.session.username });
+    if (!adminUser || !['Admin', 'Management', 'Owner'].includes(adminUser.role)) return res.status(403).send("Forbidden");
+
+    try {
+        const { reportId, status } = req.body;
+        await Feedback.findByIdAndUpdate(reportId, { status });
+        res.json({ success: true });
+    } catch (err) { res.status(500).send("Failed to update status"); }
 });
 
 app.post('/api/admin/change-rank', async (req, res) => {
@@ -146,7 +200,6 @@ app.post('/api/admin/change-rank', async (req, res) => {
         targetUser.role = ranks[newIdx];
         await targetUser.save();
 
-        // Audit Logging
         const log = new AuditLog({
             action: "RANK_CHANGE",
             performedBy: req.session.username,
@@ -172,7 +225,6 @@ app.post('/api/admin/toggle-ban', async (req, res) => {
         targetUser.isBanned = isBanned;
         await targetUser.save();
 
-        // Audit Logging
         const log = new AuditLog({
             action: isBanned ? "BAN_USER" : "UNBAN_USER",
             performedBy: req.session.username,
@@ -274,6 +326,7 @@ app.get('*', (req, res) => res.redirect('/'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP Server running on port ${PORT}`));
+
 
 
 
