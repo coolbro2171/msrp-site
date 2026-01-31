@@ -67,7 +67,7 @@
 <body>
 
 <div class="sidebar">
-    <div class="sidebar-header">MSRP</div>
+    <div class="sidebar-header">MSRP STAFF AREA</div>
     <div class="nav-tabs">
         <a href="/dashboard" class="nav-tab">Dashboard</a>
         <a href="/documents" class="nav-tab">Documents</a>
@@ -104,9 +104,9 @@
 
         users.forEach(user => {
             let badges = [];
-            if (user.isDeveloper) badges.push('<span class="badge-tag">DEV</span>');
-            if (user.isStaffInstructor) badges.push('<span class="badge-tag">INSTRUCTOR</span>');
-            if (user.hasDatabaseAccess) badges.push('<span class="badge-tag" style="color:#bf2e7e">DB</span>');
+            if (user.isDeveloper) badges.push('<span class="badge-tag">DEVELOPER</span>');
+            if (user.isStaffInstructor) badges.push('<span class="badge-tag">STAFF INSTRUCTOR</span>');
+            if (user.isDatabaseAccess) badges.push('<span class="badge-tag" style="color:#bf2e7e">DATABASE ACCESS</span>');
 
             const row = document.createElement('tr');
             row.innerHTML = `
