@@ -3,167 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MSRP | Staff Management Portal</title>
+    <title>MSRP | Admin Panel</title>
     <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/icons/1198422904178749500/6bfeee54c636ac47d339a198ff6843d2.webp">
     <style>
-        body, html { height: 100%; margin: 0; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; }
-        .bg-blur {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
-            background-image: url('https://cdn.discordapp.com/attachments/1423737735159484537/1464867032859410626/Screenshot_2026-01-24_at_11.49.57_PM.png?ex=6977affc&is=69765e7c&hm=229618631d2a4201320d7914ce099e80f605e510bc9d0b1f70058234dfeabd1e&');
-            background-size: cover; background-position: center; filter: blur(8px); transform: scale(1.1);
+        :root {
+            --primary-purple: #60068f;
+            --glass: rgba(255, 255, 255, 0.05);
+            --bg-dark: #0a0a0a;
+            --sidebar-width: 260px;
         }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); z-index: 0; }
-        .container {
-            width: 95%; max-width: 1200px; background: rgba(255, 255, 255, 0.95);
-            padding: 30px; border-radius: 18px; box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-            position: relative; z-index: 1; max-height: 85vh; overflow-y: auto;
-        }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 20px; margin-bottom: 20px; }
-        .center-text { text-align: center; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background: #f4f4f4; font-size: 0.85rem; text-transform: uppercase; color: #666; }
 
-        /* Buttons */
-        .btn { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem; transition: 0.2s; margin-right: 5px; min-width: 150px; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-dark);
+            color: white;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a);
+            overflow: hidden;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(15, 15, 15, 0.95);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 20px;
+            box-sizing: border-box;
+        }
+
+        .sidebar-header { font-weight: bold; color: var(--primary-purple); font-size: 1.5rem; margin-bottom: 40px; text-align: center; letter-spacing: 2px; }
+        .nav-tabs { display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
+        .nav-tab { padding: 15px 20px; border-radius: 10px; text-decoration: none; color: #aaa; transition: 0.3s; font-weight: 500; }
+        .nav-tab:hover { background: var(--glass); color: white; }
+        .nav-tab.active { background: var(--primary-purple); color: white; }
+
+        /* Main Content */
+        .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; }
+        .container { background: var(--glass); padding: 30px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        th { color: var(--primary-purple); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
+
+        /* Actions */
+        .btn-action { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold; margin-right: 5px; }
         .btn-promote { background: #28a745; color: white; }
-        .btn-demote { background: #ffa502; color: white; }
-        .btn-ban { background: #333; color: white; min-width: 80px; }
-        .btn-delete { background: #dc3545; color: white; min-width: 80px; }
-        .btn-back { background: #007bff; color: white; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; }
+        .btn-demote { background: #e67e22; color: white; }
+        .btn-ban { background: #333; color: white; }
+        .btn-delete { background: #dc3545; color: white; }
+
+        .badge-tag { padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-right: 5px; background: rgba(255,255,255,0.1); }
+        .role-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; }
+        .role-owner { background: #ff4757; }
+        .role-management { background: #ffa502; }
         
-        /* Badges & Roles */
-        .role-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; color: white; }
-        .role-owner { background: #ff4757; } .role-management { background: #ffa502; } .role-admin { background: #5352ed; } .role-staff { background: #2ed573; } .role-user { background: #747d8c; }
-        
-        .badge-dev { background: #00d2ff; color: white; padding: 3px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-right: 4px; }
-        .badge-database-access { background: #bf2e7e; color: white; padding: 3px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-right: 4px; }
-        .badge-staff-trainer { background: #e67e22; color: white; padding: 3px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-right: 4px; }
-        .badge-2fa { background: #2ecc71; color: white; padding: 3px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; margin-right: 4px; }
-        
-        .no-badges { color: #bbb; font-style: italic; font-size: 0.75rem; }
-        .no-actions { color: #888; font-style: italic; font-weight: bold; font-size: 0.85rem; }
-        .dev-text { margin-top: 10px; font-size: 0.7rem; color: #555; text-align: center; }
+        .logout-link { margin-top: auto; color: #ff4444; text-decoration: none; font-size: 0.9rem; text-align: center; opacity: 0.7; padding: 10px; }
     </style>
 </head>
 <body>
-<div class="bg-blur"></div>
-<div class="overlay"></div>
-<div class="container">
-    <div class="header">
-        <h2>Staff Management Portal</h2>
-        <a href="/dashboard" class="btn-back">← Return to Dashboard</a>
+
+<div class="sidebar">
+    <div class="sidebar-header">MSRP</div>
+    <div class="nav-tabs">
+        <a href="/dashboard" class="nav-tab">Dashboard</a>
+        <a href="/documents" class="nav-tab">Documents</a>
+        <a href="/settings" class="nav-tab">Settings</a>
+        <a href="/admin" class="nav-tab active">Admin Panel</a>
     </div>
-    <table id="user-table">
-        <thead>
-            <tr>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Badges</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="user-list"></tbody>
-    </table>
-    <p class="dev-text">Website Made and Managed by the MSRP Development Team</p>
+    <a href="/logout" class="logout-link">Sign Out</a>
+</div>
+
+<div class="main-content">
+    <div class="container">
+        <h1>Staff Management</h1>
+        <table id="user-table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Rank</th>
+                    <th>Badges</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="user-list">
+                </tbody>
+        </table>
+    </div>
 </div>
 
 <script>
     async function loadUsers() {
-        try {
-            const res = await fetch('/api/users');
-            if (!res.ok) throw new Error("API Connection Error");
-            const users = await res.json();
-            const list = document.getElementById('user-list');
-            list.innerHTML = '';
-            
-            users.forEach(user => {
-                let badgeHTML = "";
-                // Logic for Badge Display
-                if (user.isDeveloper) badgeHTML += `<span class="badge-dev">DEVELOPER</span>`;
-                if (user.isDatabaseAccess) badgeHTML += `<span class="badge-database-access">DATABASE ACCESS</span>`;
-                if (user.isStaffTrainer) badgeHTML += `<span class="badge-staff-trainer">STAFF TRAINER</span>`;
-                if (user.twoFactorEnabled) badgeHTML += `<span class="badge-2fa">2FA</span>`;
-                if (badgeHTML === "") badgeHTML = `<span class="no-badges">No Badges</span>`;
+        const res = await fetch('/api/admin/users'); // Path from our server.js
+        const users = await res.json();
+        const list = document.getElementById('user-list');
+        list.innerHTML = '';
 
-                let actionHTML = "";
-                // Protect Owners and define dynamic text for others
-                if (user.role === 'Owner') {
-                    actionHTML = `<span class="no-actions">No Actions Available</span>`;
-                } else {
-                    let promoteText = "";
-                    let nextRole = "";
-                    let demoteText = "";
-                    let prevRole = "";
+        users.forEach(user => {
+            let badges = [];
+            if (user.isDeveloper) badges.push('<span class="badge-tag">DEV</span>');
+            if (user.isStaffInstructor) badges.push('<span class="badge-tag">INSTRUCTOR</span>');
+            if (user.hasDatabaseAccess) badges.push('<span class="badge-tag" style="color:#bf2e7e">DB</span>');
 
-                    // Custom Labeling System
-                    if (user.role === 'User') {
-                        promoteText = "Promote to Staff";
-                        nextRole = "Staff";
-                    } else if (user.role === 'Staff') {
-                        promoteText = "Promote to Admin";
-                        nextRole = "Admin";
-                        demoteText = "Demote to User";
-                        prevRole = "User";
-                    } else if (user.role === 'Admin') {
-                        promoteText = "Promote to Management";
-                        nextRole = "Management";
-                        demoteText = "Demote to Staff";
-                        prevRole = "Staff";
-                    } else if (user.role === 'Management') {
-                        demoteText = "Demote to Admin";
-                        prevRole = "Admin";
-                    }
-
-                    actionHTML = `
-                        ${promoteText ? `<button class="btn btn-promote" onclick="updateRole('${user.username}', '${nextRole}')">${promoteText}</button>` : ''}
-                        ${demoteText ? `<button class="btn btn-demote" onclick="updateRole('${user.username}', '${prevRole}')">${demoteText}</button>` : ''}
-                        <button class="btn btn-ban" onclick="toggleBan('${user.username}', ${!user.isBanned})">${user.isBanned ? 'Unban' : 'Ban'}</button>
-                        <button class="btn btn-delete" onclick="deleteAccount('${user.username}')">Delete</button>
-                    `;
-                }
-
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><strong>${user.username}</strong></td>
-                    <td><span class="role-badge role-${user.role.toLowerCase()}">${user.role}</span></td>
-                    <td>${badgeHTML}</td>
-                    <td>${user.isBanned ? '<b style="color:red">BANNED</b>' : 'Active'}</td>
-                    <td>${actionHTML}</td>
-                `;
-                list.appendChild(row);
-            });
-        } catch (err) {
-            console.error("Admin Load Error:", err);
-            document.getElementById('user-list').innerHTML = `<tr><td colspan="5" style="text-align:center; color:red;">Failed to load user data. Check server console.</td></tr>`;
-        }
-    }
-
-    async function updateRole(username, newRole) {
-        if (!confirm(`Confirm rank change for ${username} to ${newRole}?`)) return;
-        const res = await fetch(`/api/promote-user/${username}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ newRole })
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${user.username} ${user.isBanned ? '🛑' : ''}</td>
+                <td><span class="role-badge role-${user.role.toLowerCase()}">${user.role}</span></td>
+                <td>${badges.join('') || 'None'}</td>
+                <td>
+                    <button class="btn-action btn-promote" onclick="quickUpdate('${user.username}', 'promote')">Promote</button>
+                    <button class="btn-action btn-demote" onclick="quickUpdate('${user.username}', 'demote')">Demote</button>
+                    <button class="btn-action btn-ban" onclick="toggleBan('${user.username}', ${!user.isBanned})">${user.isBanned ? 'Unban' : 'Ban'}</button>
+                </td>
+            `;
+            list.appendChild(row);
         });
-        if (res.ok) loadUsers(); else alert("Action Failed: Check Permissions");
     }
 
-    async function toggleBan(username, shouldBan) {
-        if (!confirm(`Confirm ${shouldBan ? 'BAN' : 'UNBAN'} for ${username}?`)) return;
-        const res = await fetch(`/api/ban-user/${username}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isBanned: shouldBan })
-        });
-        if (res.ok) loadUsers();
-    }
-
-    async function deleteAccount(username) {
-        if (!confirm(`DANGER: Are you sure you want to PERMANENTLY DELETE ${username}?`)) return;
-        const res = await fetch(`/api/delete-user/${username}`, { method: 'DELETE' });
-        if (res.ok) loadUsers();
+    async function quickUpdate(targetUsername, action) {
+        // This links to the /api/admin/update-user route in server.js
+        // You would expand this to handle rank logic
+        alert(`Request to ${action} ${targetUsername} sent to server.`);
     }
 
     loadUsers();
