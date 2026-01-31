@@ -22,6 +22,26 @@
             height: 100vh;
             background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a);
             overflow: hidden;
+            transition: margin-top 0.3s ease; /* Smooth transition for banner appearing */
+        }
+
+        /* Banner Styling */
+        #global-banner {
+            display: none;
+            background: var(--primary-purple);
+            color: white;
+            text-align: center;
+            padding: 12px;
+            font-weight: bold;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            border-bottom: 2px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
         }
 
         /* Sidebar Styling */
@@ -132,10 +152,14 @@
 </head>
 <body>
 
+<div id="global-banner">
+    <span id="banner-message"></span>
+</div>
+
 <div class="sidebar">
     <div class="sidebar-header">MSRP STAFF AREA</div>
     <div class="nav-tabs">
-        <a href="/" class="nav-tab active">Return to Info</a>
+        <a href="/" class="nav-tab">Return to Info</a>
         <a href="/documents" class="nav-tab">Documents</a>
         <a href="/settings" class="nav-tab">Settings</a>
         <a href="/admin" id="admin-tab" class="nav-tab" style="display: none;">Admin Panel</a>
@@ -158,9 +182,30 @@
 </div>
 
 <script>
+// --- BANNER LOGIC ---
+async function initBanner() {
+    try {
+        const res = await fetch('/api/system/banner');
+        const data = await res.json();
+        
+        if (data && data.isBannerActive) {
+            const banner = document.getElementById('global-banner');
+            const message = document.getElementById('banner-message');
+            
+            message.innerText = data.bannerText;
+            banner.style.display = 'block';
+            
+            // Offset the body so the banner doesn't overlap content
+            document.body.style.marginTop = banner.offsetHeight + 'px';
+        }
+    } catch (e) {
+        console.error("Banner fetch failed:", e);
+    }
+}
+
+// --- DASHBOARD LOGIC ---
 async function loadDashboard() {
     try {
-        // Added credentials: 'include' to ensure the session cookie is passed
         const response = await fetch('/api/user-info', {
             method: 'GET',
             credentials: 'include', 
@@ -171,7 +216,6 @@ async function loadDashboard() {
         });
         
         if (response.status === 401) {
-            console.warn("Unauthorized: Redirecting to login.");
             window.location.href = '/login';
             return;
         }
@@ -182,7 +226,7 @@ async function loadDashboard() {
         document.getElementById('display-username').innerText = user.username;
         document.getElementById('display-role').innerText = user.role;
 
-        // Badge Display (isDatabaseAccess standardized)
+        // Badge Display
         if (user.isDeveloper) document.getElementById('badge-dev').style.display = 'inline-block';
         if (user.isStaffInstructor) document.getElementById('badge-instr').style.display = 'inline-block';
         if (user.isDatabaseAccess) document.getElementById('badge-db').style.display = 'inline-block';
@@ -199,10 +243,12 @@ async function loadDashboard() {
     }
 }
 
-// Initial trigger
+// Run initializations
+initBanner();
 loadDashboard();
 </script>
 
 </body>
 </html>
+
 
