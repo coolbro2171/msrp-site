@@ -18,7 +18,6 @@
             color: #ffffff;
             display: flex;
             height: 100vh;
-            /* overflow: hidden; Removed to allow banner to push content naturally if needed */
             transition: margin-top 0.3s ease;
         }
 
@@ -50,7 +49,7 @@
             align-items: center;
             gap: 15px;
             z-index: 10;
-            transition: top 0.3s ease; /* Moves with banner */
+            transition: top 0.3s ease;
         }
 
         .top-nav a {
@@ -206,16 +205,8 @@
 
         <div id="blog" class="tab-content">
             <h1>Latest Updates</h1>
-            <div class="blog-card">
-                <div class="blog-date">JAN 30, 2026</div>
-                <h3> Server Milestone</h3>
-                <p>We've successfully reached the milestone of 6,000 members within our Discord server. This is the biggest milestones we have ever hit and we would not have been able to do it without you.</p>
-            </div>
-
-            <div class="blog-card">
-                <div class="blog-date">JAN 30, 2026</div>
-                <h3>Portal 2.0 Live</h3>
-                <p>Login system, session management, and UI layouts have been fully optimized.</p>
+            <div id="blog-container">
+                <p style="color: #888;">Fetching the latest community updates...</p>
             </div>
         </div>
 
@@ -297,10 +288,39 @@ async function initBanner() {
             
             const offset = banner.offsetHeight;
             document.body.style.marginTop = offset + 'px';
-            nav.style.top = offset + 'px'; // Pushes login/register buttons down
+            nav.style.top = offset + 'px';
         }
     } catch (e) {
         console.log("Banner fetch failed.");
+    }
+}
+
+// BLOG INITIALIZATION
+async function loadBlogUpdates() {
+    try {
+        const res = await fetch('/api/blog-updates');
+        const updates = await res.json();
+        const container = document.getElementById('blog-container');
+        
+        if (!updates || updates.length === 0) {
+            container.innerHTML = "<p style='color: #888;'>No updates have been posted yet.</p>";
+            return;
+        }
+
+        container.innerHTML = ''; // Clear the loading message
+        updates.forEach(post => {
+            const card = document.createElement('div');
+            card.className = 'blog-card';
+            card.innerHTML = `
+                <div class="blog-date">${post.date}</div>
+                <h3>${post.title}</h3>
+                <p>${post.content}</p>
+            `;
+            container.appendChild(card);
+        });
+    } catch (e) {
+        console.error("Error loading blog:", e);
+        document.getElementById('blog-container').innerHTML = "<p style='color: #ff4444;'>Failed to load community updates.</p>";
     }
 }
 
@@ -347,8 +367,10 @@ function showTab(tabId, btn) {
 // Initial trigger
 initBanner();
 initAuth();
+loadBlogUpdates();
     </script>
 </body>
 </html>
+
 
 
