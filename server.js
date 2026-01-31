@@ -17,29 +17,37 @@ mongoose.connect(MONGODB_URI)
     .then(() => console.log("MSRP Database Connected"))
     .catch(err => console.error("Database Connection Error:", err));
 
-// --- USER SCHEMA ---
+// --- SCHEMAS ---
+
+// User Schema
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role: { type: String, enum: ['User', 'Staff', 'Admin', 'Management', 'Owner'], default: 'User' },
     isBanned: { type: Boolean, default: false },
-    
     isDeveloper: { type: Boolean, default: false },
     isStaffInstructor: { type: Boolean, default: false },
     isDatabaseAccess: { type: Boolean, default: false },
-
     twoFactorSecret: { type: String, default: null },
     twoFactorEnabled: { type: Boolean, default: false }
 });
 const User = mongoose.model('User', userSchema);
 
-// --- SYSTEM SCHEMA (FOR BANNER) ---
-// This schema allows you to toggle the banner directly from MongoDB
+// System Settings Schema (Banner)
 const systemSchema = new mongoose.Schema({
     bannerText: { type: String, default: "Welcome to MSRP!" },
     isBannerActive: { type: Boolean, default: false }
 });
 const System = mongoose.model('System', systemSchema, 'system_settings');
+
+// Blog Schema
+const blogSchema = new mongoose.Schema({
+    date: { type: String, required: true },
+    title: { type: String, required: true },
+    content: { type: String, required: true },
+    order: { type: Number, default: 0 }
+});
+const Blog = mongoose.model('Blog', blogSchema, 'blog_updates');
 
 // --- MIDDLEWARE ---
 app.use(express.json());
@@ -64,9 +72,9 @@ app.use(session({
 
 const ranks = ['User', 'Staff', 'Admin', 'Management', 'Owner'];
 
-// --- SYSTEM API ---
+// --- SYSTEM & BLOG API (PUBLIC) ---
 
-// Public endpoint to check banner status
+// Banner API
 app.get('/api/system/banner', async (req, res) => {
     try {
         const settings = await System.findOne();
@@ -76,7 +84,17 @@ app.get('/api/system/banner', async (req, res) => {
     }
 });
 
-// --- API ENDPOINTS ---
+// Blog API
+app.get('/api/blog-updates', async (req, res) => {
+    try {
+        const updates = await Blog.find().sort({ order: -1 });
+        res.json(updates);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to fetch blog updates" });
+    }
+});
+
+// --- ADMIN API ENDPOINTS ---
 
 app.get('/api/user-info', async (req, res) => {
     if (!req.session.isLoggedIn || !req.session.username) {
@@ -92,7 +110,7 @@ app.get('/api/user-info', async (req, res) => {
 app.get('/api/admin/users', async (req, res) => {
     if (!req.session.isLoggedIn) return res.status(401).json({ error: "Unauthorized" });
     const adminUser = await User.findOne({ username: req.session.username });
-    if (!['Admin', 'Management', 'Owner'].includes(adminUser.role)) return res.status(403).json({ error: "Forbidden" });
+    if (!adminUser || !['Admin', 'Management', 'Owner'].includes(adminUser.role)) return res.status(403).json({ error: "Forbidden" });
 
     try {
         const users = await User.find({}, '-password');
@@ -103,7 +121,7 @@ app.get('/api/admin/users', async (req, res) => {
 app.post('/api/admin/change-rank', async (req, res) => {
     if (!req.session.isLoggedIn) return res.status(401).json({ error: "Unauthorized" });
     const adminUser = await User.findOne({ username: req.session.username });
-    if (!['Admin', 'Management', 'Owner'].includes(adminUser.role)) return res.status(403).json({ error: "Forbidden" });
+    if (!adminUser || !['Admin', 'Management', 'Owner'].includes(adminUser.role)) return res.status(403).json({ error: "Forbidden" });
 
     const { targetUsername, action } = req.body;
     try {
@@ -125,7 +143,7 @@ app.post('/api/admin/change-rank', async (req, res) => {
 app.post('/api/admin/toggle-ban', async (req, res) => {
     if (!req.session.isLoggedIn) return res.status(401).json({ error: "Unauthorized" });
     const adminUser = await User.findOne({ username: req.session.username });
-    if (!['Admin', 'Management', 'Owner'].includes(adminUser.role)) return res.status(403).json({ error: "Forbidden" });
+    if (!adminUser || !['Admin', 'Management', 'Owner'].includes(adminUser.role)) return res.status(403).json({ error: "Forbidden" });
 
     const { targetUsername, isBanned } = req.body;
     try {
@@ -221,12 +239,12 @@ app.get('/dashboard', (req, res) => req.session.isLoggedIn ? res.sendFile(path.j
 app.get('/settings', (req, res) => req.session.isLoggedIn ? res.sendFile(path.join(__dirname, 'settings.html')) : res.redirect('/login'));
 app.get('/admin', (req, res) => req.session.isLoggedIn ? res.sendFile(path.join(__dirname, 'admin.html')) : res.redirect('/login'));
 app.get('/documents', (req, res) => req.session.isLoggedIn ? res.sendFile(path.join(__dirname, 'documents.html')) : res.redirect('/login'));
-
 app.get('/2fa', (req, res) => req.session.isLoggedIn ? res.sendFile(path.join(__dirname, '2fa-verify.html')) : res.redirect('/login'));
 
 app.get('*', (req, res) => res.redirect('/'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP Server running on port ${PORT}`));
+
 
 
