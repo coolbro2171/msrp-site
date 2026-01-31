@@ -143,6 +143,14 @@ app.get('/settings', (req, res) => {
     else res.redirect('/login');
 });
 
+app.get('/2fa', (req, res) => {
+    if (req.session.isLoggedIn) {
+        res.sendFile(path.join(__dirname, '2fa-verify.html'));
+    } else {
+        res.redirect('/login');
+    }
+});
+
 app.get('/admin', (req, res) => {
     if (req.session.isLoggedIn) res.sendFile(path.join(__dirname, 'admin.html'));
     else res.redirect('/login');
@@ -154,3 +162,4 @@ app.get('*', (req, res) => res.redirect('/'));
 // --- START SERVER ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP Portal Live on Port ${PORT}`));
+
