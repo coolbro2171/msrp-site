@@ -6,67 +6,199 @@
     <title>MSRP | Settings</title>
     <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/icons/1198422904178749500/6bfeee54c636ac47d339a198ff6843d2.webp">
     <style>
-        body, html { height: 100%; margin: 0; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        .bg-blur { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background-image: url('https://cdn.discordapp.com/attachments/1423737735159484537/1464867032859410626/Screenshot_2026-01-24_at_11.49.57_PM.png?ex=6977affc&is=69765e7c&hm=229618631d2a4201320d7914ce099e80f605e510bc9d0b1f70058234dfeabd1e&'); background-size: cover; background-position: center; filter: blur(10px); transform: scale(1.1); }
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.3); z-index: 0; }
-        .settings-card { background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 18px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); width: 100%; max-width: 500px; position: relative; z-index: 1; text-align: center; }
-        h1 { font-size: 2rem; margin-bottom: 20px; color: #222; }
-        h2 { border-bottom: 2px solid #eee; padding-bottom: 8px; margin-top: 25px; font-size: 1.3rem; text-align: left; }
-        .section { margin-bottom: 25px; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        .btn { padding: 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; font-size: 1rem; }
-        .btn-save { background: #007bff; color: white; }
-        .btn-2fa { background: #28a745; color: white; }
-        .btn-disable { background: #6c757d; color: white; margin-top: 10px; }
-        .btn-delete { background: #dc3545; color: white; margin-top: 15px; }
-        .status-active { background: #e7f3ef; color: #28a745; padding: 15px; border-radius: 10px; font-weight: bold; display: none; }
-        .qr-container { text-align: center; margin: 20px 0; display: none; }
-        #qr-code img { max-width: 150px; border: 4px solid white; }
-        .back-link { display: block; text-align: left; margin-bottom: 15px; color: #007bff; text-decoration: none; font-weight: 600; }
-        .center-text { text-align: center; }
-        .dev-text { margin-top: 10px; font-size: 0.7rem; color: #555; }
+        :root {
+            --primary-purple: #60068f;
+            --glass: rgba(255, 255, 255, 0.05);
+            --bg-dark: #0a0a0a;
+            --sidebar-width: 260px;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-dark);
+            color: white;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a);
+            overflow: hidden;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(15, 15, 15, 0.95);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 20px;
+            box-sizing: border-box;
+        }
+
+        .sidebar-header {
+            font-weight: bold;
+            color: var(--primary-purple);
+            font-size: 1.5rem;
+            margin-bottom: 40px;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-grow: 1;
+        }
+
+        .nav-tab {
+            padding: 15px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #aaa;
+            transition: 0.3s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-tab:hover { background: var(--glass); color: white; }
+        .nav-tab.active { background: var(--primary-purple); color: white; }
+
+        /* Main Content Area */
+        .main-content {
+            flex-grow: 1;
+            padding: 40px;
+            overflow-y: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        .settings-container {
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .settings-card {
+            background: var(--glass);
+            padding: 30px;
+            border-radius: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 { font-size: 2rem; margin-bottom: 30px; }
+        h2 { font-size: 1.2rem; margin-bottom: 20px; color: var(--primary-purple); text-transform: uppercase; letter-spacing: 1px; }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-purple { background: var(--primary-purple); color: white; }
+        .btn-purple:hover { background: #7a09b5; }
+        
+        .btn-danger { background: rgba(220, 53, 69, 0.2); color: #dc3545; border: 1px solid #dc3545; }
+        .btn-danger:hover { background: #dc3545; color: white; }
+
+        .status-msg {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: none;
+            text-align: center;
+        }
+
+        #qr-container { text-align: center; display: none; margin-top: 20px; }
+        #qr-code img { background: white; padding: 10px; border-radius: 10px; margin-bottom: 15px; }
+
+        .logout-link { margin-top: auto; color: #ff4444; text-decoration: none; font-size: 0.9rem; text-align: center; opacity: 0.7; padding: 10px; }
+        .logout-link:hover { opacity: 1; }
     </style>
 </head>
 <body>
-<div class="bg-blur"></div>
-<div class="overlay"></div>
-<div class="settings-card">
-    <a href="/dashboard" class="back-link">&larr; Return to Dashboard</a>
-    <h1>Account Settings</h1>
-    <div class="section">
-        <h2>Change Password</h2>
-        <input type="password" id="old-pass" placeholder="Current Password">
-        <input type="password" id="new-pass" placeholder="New Password">
-        <button class="btn btn-save" onclick="changePassword()">Update Password</button>
+
+<div class="sidebar">
+    <div class="sidebar-header">MSRP</div>
+    <div class="nav-tabs">
+        <a href="/dashboard" class="nav-tab">Dashboard</a>
+        <a href="/documents" class="nav-tab">Documents</a>
+        <a href="/settings" class="nav-tab active">Settings</a>
+        <a href="/admin" id="admin-tab" class="nav-tab" style="display: none;">Admin Panel</a>
     </div>
-    <div class="section">
-        <h2>Two-Factor Authentication (RECOMMENDED)</h2>
-        <h4>Mandatory for SHR+</h4>
-        <button id="setup-2fa-btn" class="btn btn-2fa" onclick="setup2FA()">Enable 2FA</button>
-        <div id="2fa-active-msg" class="status-active">
-            ✓ 2FA is currently enabled
-            <button class="btn btn-disable" onclick="disable2FA()">Disable 2FA</button>
+    <a href="/logout" class="logout-link">Sign Out</a>
+</div>
+
+<div class="main-content">
+    <div class="settings-container">
+        <h1>Account Settings</h1>
+
+        <div class="settings-card">
+            <h2>Change Password</h2>
+            <input type="password" id="old-pass" placeholder="Current Password">
+            <input type="password" id="new-pass" placeholder="New Password">
+            <button class="btn btn-purple" onclick="changePassword()">Update Password</button>
         </div>
-        <div id="qr-container" class="qr-container">
-            <div id="qr-code"></div>
-            <input type="text" id="2fa-token" placeholder="Enter 6-digit code">
-            <button class="btn btn-save" onclick="verify2FA()">Verify and Save</button>
+
+        <div class="settings-card">
+            <h2>Two-Factor Authentication</h2>
+            <p style="font-size: 0.9rem; color: #888; margin-bottom: 15px;">Mandatory for SHR+ Staff</p>
+            
+            <div id="2fa-active-msg" class="status-msg" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid #10b981;">
+                ✓ 2FA is currently enabled
+                <button class="btn btn-danger" style="margin-top: 15px;" onclick="disable2FA()">Disable 2FA</button>
+            </div>
+
+            <button id="setup-2fa-btn" class="btn btn-purple" onclick="setup2FA()">Enable 2FA</button>
+
+            <div id="qr-container">
+                <div id="qr-code"></div>
+                <p style="font-size: 0.8rem; margin-bottom: 10px;">Scan with Google Authenticator or Authy</p>
+                <input type="text" id="2fa-token" placeholder="Enter 6-digit code">
+                <button class="btn btn-purple" onclick="verify2FA()">Verify and Save</button>
+            </div>
         </div>
-    </div>
-    <div>
-        <h2 class="center-text" style="color: #dc3545;">DANGER ZONE</h2>
-        <button class="btn btn-delete" onclick="deleteAccount()">Delete Account</button>
-    </div>
-    <div class="dev-text">
-        <p>Website Made and Managed by the MSRP Development Team</p>
-        <p>Jamal Was Here</p>
+
+        <div class="settings-card" style="border-color: rgba(220, 53, 69, 0.3);">
+            <h2 style="color: #dc3545;">Danger Zone</h2>
+            <button class="btn btn-danger" onclick="deleteAccount()">Delete Account</button>
+        </div>
+
+        <p style="text-align: center; font-size: 0.7rem; color: #444; margin-top: 40px;">
+            Website Made and Managed by the MSRP Development Team<br>Jamal Was Here
+        </p>
     </div>
 </div>
+
 <script>
     async function checkStatus() {
-        const res = await fetch('/api/me');
-        const data = await res.json();
-        if (data.twoFactorEnabled) {
+        const res = await fetch('/api/user-info');
+        const user = await res.json();
+        
+        // Show Admin tab if permitted
+        if (['Admin', 'Management', 'Owner'].includes(user.role)) {
+            document.getElementById('admin-tab').style.display = 'flex';
+        }
+
+        // Check 2FA status
+        if (user.twoFactorEnabled) {
             document.getElementById('setup-2fa-btn').style.display = 'none';
             document.getElementById('2fa-active-msg').style.display = 'block';
         }
@@ -74,27 +206,32 @@
     checkStatus();
 
     async function setup2FA() {
-        const res = await fetch('/api/settings/2fa/setup', { method: 'POST' });
+        const res = await fetch('/api/2fa/setup');
         const data = await res.json();
-        document.getElementById('qr-code').innerHTML = `<img src="${data.qrCode}">`;
+        document.getElementById('qr-code').innerHTML = `<img src="${data.qrImageUrl}">`;
         document.getElementById('qr-container').style.display = 'block';
         document.getElementById('setup-2fa-btn').style.display = 'none';
     }
 
     async function verify2FA() {
         const token = document.getElementById('2fa-token').value;
-        const res = await fetch('/api/settings/2fa/verify', {
+        const res = await fetch('/api/2fa/verify', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({token})
         });
-        if(res.ok) location.reload();
-        else alert("Invalid code.");
+        if(res.ok) {
+            alert("2FA Enabled Successfully!");
+            location.reload();
+        } else {
+            alert("Invalid code.");
+        }
     }
 
     async function disable2FA() {
-        if(confirm("Are you sure?")) {
-            await fetch('/api/settings/2fa/disable', { method: 'POST' });
+        if(confirm("Disabling 2FA will lower your account security. Proceed?")) {
+            // Note: You'll need to add this simple route to server.js if not already there
+            await fetch('/api/2fa/disable', { method: 'POST' });
             location.reload();
         }
     }
@@ -107,11 +244,12 @@
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({oldPass, newPass})
         });
-        alert(await res.text());
+        const msg = await res.text();
+        alert(msg);
     }
 
     async function deleteAccount() {
-        if(confirm("Permanently delete account?")) {
+        if(confirm("Are you absolutely sure? This cannot be undone.")) {
             await fetch('/api/settings/account', { method: 'DELETE' });
             window.location.href = '/';
         }
