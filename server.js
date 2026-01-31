@@ -42,10 +42,17 @@ app.use(express.static(__dirname));
 
 app.use(session({
     secret: 'msrp-secure-v11-final-build',
-    resave: true,
-    saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: MONGODB_URI }),
-    cookie: { secure: false, httpOnly: true, maxAge: 1000 * 60 * 60 * 24 }
+    resave: true,               // Forces session to be saved back to the store
+    saveUninitialized: false,   // Don't create empty sessions
+    store: MongoStore.create({ 
+        mongoUrl: MONGODB_URI,
+        touchAfter: 24 * 3600   // Only update the session once every 24 hours (saves database speed)
+    }),
+    cookie: { 
+        secure: false,          // Keep false for Render.com unless you have a custom SSL setup
+        httpOnly: true, 
+        maxAge: 1000 * 60 * 60 * 24 // 1 Day
+    }
 }));
 
 // --- RANK HIERARCHY ---
@@ -200,6 +207,7 @@ app.get('*', (req, res) => res.redirect('/'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP Server running on port ${PORT}`));
+
 
 
 
