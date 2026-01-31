@@ -57,7 +57,13 @@
         .btn-resolve { background: var(--primary-purple); color: white; }
         .btn-action:hover { opacity: 0.8; }
 
-        .badge-tag { padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-right: 5px; background: rgba(255,255,255,0.1); }
+        .badge-tag { padding: 4px 10px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; text-transform: uppercase; margin-right: 5px; }
+        
+        /* Status Colors */
+        .status-pending { background: rgba(255, 255, 255, 0.1); color: #aaa; }
+        .status-reviewed { background: #f1c40f; color: #000; }
+        .status-resolved { background: #2ecc71; color: #000; }
+
         .role-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; }
         .role-owner { background: #ff4757; }
         .role-management { background: #ffa502; }
@@ -70,7 +76,6 @@
         
         .logout-link { margin-top: auto; color: #ff4444; text-decoration: none; font-size: 0.9rem; text-align: center; opacity: 0.7; padding: 10px; }
 
-        /* Modal Styling */
         .modal {
             display: none;
             position: fixed;
@@ -219,9 +224,9 @@
 
             users.forEach(user => {
                 let badges = [];
-                if (user.isDeveloper) badges.push('<span class="badge-tag">DEVELOPER</span>');
-                if (user.isStaffInstructor) badges.push('<span class="badge-tag">STAFF INSTRUCTOR</span>');
-                if (user.isDatabaseAccess) badges.push('<span class="badge-tag" style="color:#bf2e7e">DATABASE ACCESS</span>');
+                if (user.isDeveloper) badges.push('<span class="badge-tag" style="background:rgba(255,255,255,0.1)">DEVELOPER</span>');
+                if (user.isStaffInstructor) badges.push('<span class="badge-tag" style="background:rgba(255,255,255,0.1)">STAFF INSTRUCTOR</span>');
+                if (user.isDatabaseAccess) badges.push('<span class="badge-tag" style="color:#bf2e7e; background:rgba(255,255,255,0.1)">DATABASE ACCESS</span>');
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -258,17 +263,21 @@
                 const row = document.createElement('tr');
                 const typeClass = report.type === 'Bug' ? 'type-bug' : 'type-suggestion';
                 
-                // We stringify the report object to pass it into the view function
+                // Set badge color class based on status
+                let statusClass = 'status-pending';
+                if (report.status === 'Reviewed') statusClass = 'status-reviewed';
+                if (report.status === 'Resolved') statusClass = 'status-resolved';
+
                 const reportData = JSON.stringify(report).replace(/"/g, '&quot;');
                 
                 row.innerHTML = `
                     <td>${report.username}</td>
                     <td><span class="${typeClass}">${report.type.toUpperCase()}</span></td>
                     <td>${report.title}</td>
-                    <td><span class="badge-tag">${report.status}</span></td>
+                    <td><span class="badge-tag ${statusClass}">${report.status}</span></td>
                     <td>
                         <button class="btn-action btn-resolve" onclick="viewReport(${reportData})">Review</button>
-                        <button class="btn-action btn-ban" onclick="updateReportStatus('${report._id}', 'Resolved')">Resolve</button>
+                        <button class="btn-action" style="background: #2ecc71; color: #000;" onclick="handleResolve('${report._id}')">Resolve</button>
                     </td>
                 `;
                 list.appendChild(row);
@@ -276,17 +285,18 @@
         } catch (err) { console.error("Failed to load reports:", err); }
     }
 
-    // Modal Functions
     function viewReport(report) {
         document.getElementById('modal-title').innerText = report.title;
         document.getElementById('modal-user').innerText = report.username;
         document.getElementById('modal-type').innerText = report.type;
-        document.getElementById('modal-status').innerText = report.status;
         document.getElementById('modal-desc').innerText = report.description;
+        
+        const modalStatus = document.getElementById('modal-status');
+        modalStatus.innerText = report.status;
+        modalStatus.className = `badge-tag ${report.status === 'Reviewed' ? 'status-reviewed' : 'status-pending'}`;
         
         document.getElementById('reportModal').style.display = 'block';
         
-        // Auto-mark as "Reviewed" if it was still "Pending"
         if (report.status === 'Pending') {
             updateReportStatus(report._id, 'Reviewed');
         }
@@ -296,23 +306,28 @@
         document.getElementById('reportModal').style.display = 'none';
     }
 
-    // Close modal when clicking outside of it
     window.onclick = function(event) {
         const modal = document.getElementById('reportModal');
-        if (event.target == modal) {
-            closeModal();
-        }
+        if (event.target == modal) closeModal();
+    }
+
+    async function handleResolve(reportId) {
+        if (!confirm("Are you sure you want to resolve this report? It will be permanently deleted.")) return;
+        await updateReportStatus(reportId, 'Resolved');
     }
 
     async function updateReportStatus(reportId, status) {
+        const isDeletion = (status === 'Resolved');
+        const endpoint = isDeletion ? '/api/admin/reports/delete' : '/api/admin/reports/update';
+
         try {
-            const res = await fetch('/api/admin/reports/update', {
+            const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ reportId, status })
             });
             if (res.ok) loadReports();
-            else alert("Failed to update report status.");
+            else alert("Failed to update report.");
         } catch (e) { alert("Error connecting to server."); }
     }
 
