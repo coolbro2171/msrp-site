@@ -24,16 +24,22 @@ const userSchema = new mongoose.Schema({
     role: { type: String, enum: ['User', 'Staff', 'Admin', 'Management', 'Owner'], default: 'User' },
     isBanned: { type: Boolean, default: false },
     
-    // Badge Flags
     isDeveloper: { type: Boolean, default: false },
     isStaffInstructor: { type: Boolean, default: false },
-    isDatabaseAccess: { type: Boolean, default: false }, // Standardized field name
+    isDatabaseAccess: { type: Boolean, default: false },
 
-    // Security
     twoFactorSecret: { type: String, default: null },
     twoFactorEnabled: { type: Boolean, default: false }
 });
 const User = mongoose.model('User', userSchema);
+
+// --- SYSTEM SCHEMA (FOR BANNER) ---
+// This schema allows you to toggle the banner directly from MongoDB
+const systemSchema = new mongoose.Schema({
+    bannerText: { type: String, default: "Welcome to MSRP!" },
+    isBannerActive: { type: Boolean, default: false }
+});
+const System = mongoose.model('System', systemSchema, 'system_settings');
 
 // --- MIDDLEWARE ---
 app.use(express.json());
@@ -51,17 +57,27 @@ app.use(session({
     cookie: { 
         secure: false,          
         httpOnly: true, 
-        sameSite: 'lax',        // Helps maintain session during redirects
+        sameSite: 'lax',
         maxAge: 1000 * 60 * 60 * 24 
     }
 }));
 
-// --- RANK HIERARCHY ---
 const ranks = ['User', 'Staff', 'Admin', 'Management', 'Owner'];
+
+// --- SYSTEM API ---
+
+// Public endpoint to check banner status
+app.get('/api/system/banner', async (req, res) => {
+    try {
+        const settings = await System.findOne();
+        res.json(settings || { isBannerActive: false, bannerText: "" });
+    } catch (err) {
+        res.status(500).json({ error: "Database error" });
+    }
+});
 
 // --- API ENDPOINTS ---
 
-// Fetch current user session data
 app.get('/api/user-info', async (req, res) => {
     if (!req.session.isLoggedIn || !req.session.username) {
         return res.status(401).json({ error: "Unauthorized" });
@@ -73,7 +89,6 @@ app.get('/api/user-info', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "Server Error" }); }
 });
 
-// Admin API: Fetch all users
 app.get('/api/admin/users', async (req, res) => {
     if (!req.session.isLoggedIn) return res.status(401).json({ error: "Unauthorized" });
     const adminUser = await User.findOne({ username: req.session.username });
@@ -85,7 +100,6 @@ app.get('/api/admin/users', async (req, res) => {
     } catch (err) { res.status(500).json({ error: "Server Error" }); }
 });
 
-// Admin API: Promote/Demote logic
 app.post('/api/admin/change-rank', async (req, res) => {
     if (!req.session.isLoggedIn) return res.status(401).json({ error: "Unauthorized" });
     const adminUser = await User.findOne({ username: req.session.username });
@@ -108,7 +122,6 @@ app.post('/api/admin/change-rank', async (req, res) => {
     } catch (err) { res.status(500).send("Update failed"); }
 });
 
-// Admin API: Ban Toggle
 app.post('/api/admin/toggle-ban', async (req, res) => {
     if (!req.session.isLoggedIn) return res.status(401).json({ error: "Unauthorized" });
     const adminUser = await User.findOne({ username: req.session.username });
@@ -215,11 +228,5 @@ app.get('*', (req, res) => res.redirect('/'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP Server running on port ${PORT}`));
-
-
-
-
-
-
 
 
