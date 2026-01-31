@@ -22,9 +22,9 @@
             height: 100vh;
             background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a);
             overflow: hidden;
+            transition: margin-top 0.3s ease;
         }
 
-        /* Sidebar Styling */
         .sidebar {
             width: var(--sidebar-width);
             background: rgba(15, 15, 15, 0.95);
@@ -33,6 +33,8 @@
             flex-direction: column;
             padding: 30px 20px;
             box-sizing: border-box;
+            position: relative;
+            transition: top 0.3s ease;
         }
 
         .sidebar-header { font-weight: bold; color: var(--primary-purple); font-size: 1.5rem; margin-bottom: 40px; text-align: center; letter-spacing: 2px; }
@@ -41,7 +43,6 @@
         .nav-tab:hover { background: var(--glass); color: white; }
         .nav-tab.active { background: var(--primary-purple); color: white; }
 
-        /* Main Content */
         .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; }
         .container { background: var(--glass); padding: 30px; border-radius: 18px; border: 1px solid rgba(255, 255, 255, 0.1); }
         
@@ -49,7 +50,6 @@
         th, td { padding: 15px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
         th { color: var(--primary-purple); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px; }
 
-        /* Actions */
         .btn-action { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75rem; font-weight: bold; margin-right: 5px; }
         .btn-promote { background: #28a745; color: white; }
         .btn-demote { background: #e67e22; color: white; }
@@ -67,6 +67,10 @@
     </style>
 </head>
 <body>
+
+<div id="global-banner" style="display: none; background: #60068f; color: white; text-align: center; padding: 12px; font-weight: bold; width: 100%; position: fixed; top: 0; left: 0; z-index: 9999; border-bottom: 2px solid rgba(255,255,255,0.1); box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 0.95rem;">
+    <span id="banner-message"></span>
+</div>
 
 <div class="sidebar">
     <div class="sidebar-header">MSRP STAFF AREA</div>
@@ -97,7 +101,23 @@
 </div>
 
 <script>
+    async function initBanner() {
+        try {
+            const res = await fetch('/api/system/banner');
+            const data = await res.json();
+            if (data && data.isBannerActive) {
+                const banner = document.getElementById('global-banner');
+                document.getElementById('banner-message').innerText = data.bannerText;
+                banner.style.display = 'block';
+                const offset = banner.offsetHeight;
+                document.body.style.marginTop = offset + 'px';
+                document.querySelector('.sidebar').style.top = offset + 'px';
+            }
+        } catch (e) { console.log("Banner failed"); }
+    }
+
     async function loadUsers() {
+        await initBanner();
         try {
             const res = await fetch('/api/admin/users');
             if (!res.ok) throw new Error("Unauthorized");
@@ -131,40 +151,27 @@
         }
     }
 
-    // Rank Change Logic
     async function changeRank(targetUsername, action) {
         if (!confirm(`Are you sure you want to ${action} ${targetUsername}?`)) return;
-
         const res = await fetch('/api/admin/change-rank', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ targetUsername, action })
         });
-
-        if (res.ok) {
-            loadUsers(); // Refresh table
-        } else {
-            const err = await res.text();
-            alert("Error: " + err);
-        }
+        if (res.ok) loadUsers();
+        else alert("Error: " + await res.text());
     }
 
-    // Ban Logic
     async function toggleBan(targetUsername, isBanned) {
         const actionText = isBanned ? "BAN" : "UNBAN";
         if (!confirm(`Confirm ${actionText} for ${targetUsername}?`)) return;
-
         const res = await fetch('/api/admin/toggle-ban', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ targetUsername, isBanned })
         });
-
-        if (res.ok) {
-            loadUsers(); // Refresh table
-        } else {
-            alert("Failed to update ban status.");
-        }
+        if (res.ok) loadUsers();
+        else alert("Failed to update ban status.");
     }
 
     loadUsers();
