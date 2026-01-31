@@ -59,7 +59,6 @@
 
         .badge-tag { padding: 4px 10px; border-radius: 4px; font-size: 0.65rem; font-weight: bold; text-transform: uppercase; margin-right: 5px; }
         
-        /* Status Colors */
         .status-pending { background: rgba(255, 255, 255, 0.1); color: #aaa; }
         .status-reviewed { background: #f1c40f; color: #000; }
         .status-resolved { background: #2ecc71; color: #000; }
@@ -193,6 +192,15 @@
 </div>
 
 <script>
+    // Define rank priority (Higher number = Higher rank)
+    const RANK_PRIORITY = {
+        'Owner': 5,
+        'Management': 4,
+        'Admin': 3,
+        'Staff': 2,
+        'User': 1
+    };
+
     async function initBanner() {
         try {
             const res = await fetch('/api/system/banner');
@@ -218,7 +226,16 @@
         try {
             const res = await fetch('/api/admin/users');
             if (!res.ok) throw new Error("Unauthorized");
-            const users = await res.json();
+            
+            let users = await res.json();
+
+            // Sort users based on RANK_PRIORITY (Descending)
+            users.sort((a, b) => {
+                const priorityA = RANK_PRIORITY[a.role] || 0;
+                const priorityB = RANK_PRIORITY[b.role] || 0;
+                return priorityB - priorityA; 
+            });
+
             const list = document.getElementById('user-list');
             list.innerHTML = '';
 
@@ -263,7 +280,6 @@
                 const row = document.createElement('tr');
                 const typeClass = report.type === 'Bug' ? 'type-bug' : 'type-suggestion';
                 
-                // Set badge color class based on status
                 let statusClass = 'status-pending';
                 if (report.status === 'Reviewed') statusClass = 'status-reviewed';
                 if (report.status === 'Resolved') statusClass = 'status-resolved';
