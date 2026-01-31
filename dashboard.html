@@ -3,198 +3,168 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MSRP | Staff Dashboard</title>
+    <title>MSRP | Dashboard</title>
+    <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/icons/1198422904178749500/6bfeee54c636ac47d339a198ff6843d2.webp">
     <style>
         :root {
             --primary-purple: #60068f;
             --glass: rgba(255, 255, 255, 0.05);
-            --sidebar-bg: #0f0f0f;
             --bg-dark: #0a0a0a;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
-
         body {
-            background: var(--bg-dark);
-            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-dark);
+            color: white;
+            margin: 0;
             display: flex;
+            justify-content: center;
+            align-items: center;
             height: 100vh;
-            overflow: hidden;
-        }
-
-        /* Sidebar Styling (Matches Info Page) */
-        .sidebar {
-            width: 280px;
-            background: var(--sidebar-bg);
-            border-right: 1px solid #222;
-            display: flex;
-            flex-direction: column;
-            padding: 40px 25px;
-        }
-
-        .sidebar h2 { 
-            margin-bottom: 40px; 
-            font-size: 1.4rem; 
-            color: var(--primary-purple);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .sidebar-btn {
-            background: none;
-            border: none;
-            color: #888;
-            text-align: left;
-            padding: 14px 18px;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: 0.2s;
-            border-radius: 10px;
-            margin-bottom: 8px;
-            text-decoration: none;
-            display: block;
-        }
-
-        .sidebar-btn:hover {
-            color: white;
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .sidebar-btn.active {
-            background: var(--primary-purple);
-            color: white;
-            box-shadow: 0 4px 12px rgba(96, 6, 143, 0.2);
-        }
-
-        .sidebar-btn.info-link {
-            margin-top: auto; /* Pushes to bottom */
-            color: var(--primary-purple);
-            border: 1px solid rgba(96, 6, 143, 0.3);
-        }
-
-        /* Main Content Area */
-        .content {
-            flex-grow: 1;
-            padding: 80px;
-            overflow-y: auto;
             background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a);
         }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 50px;
-        }
-
-        h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; }
-
-        /* Glass Cards */
-        .dashboard-card {
+        .dashboard-container {
             background: var(--glass);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 30px;
-            border-radius: 15px;
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
-            margin-bottom: 25px;
+            width: 450px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
         }
 
-        .dashboard-card h3 {
-            color: var(--primary-purple);
-            margin-bottom: 15px;
-            font-size: 1.5rem;
+        h1 { margin: 0; font-size: 2rem; color: white; }
+        .role-text { color: var(--primary-purple); font-weight: bold; margin-bottom: 20px; letter-spacing: 1px; }
+
+        /* Badge Styling */
+        .badge-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+            min-height: 30px;
         }
 
-        .dashboard-card p {
-            color: #b0b0b0;
-            line-height: 1.6;
-            font-size: 1.1rem;
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            display: none; /* Hidden until verified */
+        }
+
+        .badge-dev { background: #3b82f6; color: white; border: 1px solid #60a5fa; }
+        .badge-instr { background: #10b981; color: white; border: 1px solid #34d399; }
+        .badge-db { background: #f59e0b; color: white; border: 1px solid #fbbf24; }
+
+        .nav-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .nav-btn {
+            background: var(--glass);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+            color: white;
+            text-decoration: none;
+            transition: 0.3s;
+            font-weight: 500;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary-purple);
+            transform: translateY(-3px);
+            border-color: var(--primary-purple);
         }
 
         .logout-btn {
+            margin-top: 25px;
+            display: inline-block;
             color: #ff4444;
             text-decoration: none;
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 8px;
-            background: rgba(255, 68, 68, 0.1);
-            transition: 0.3s;
+            font-size: 0.9rem;
+            opacity: 0.7;
         }
 
-        .logout-btn:hover {
-            background: #ff4444;
-            color: white;
-        }
+        .logout-btn:hover { opacity: 1; }
     </style>
 </head>
 <body>
 
-    <div class="sidebar">
-        <h2>MSRP Staff Area</h2>
-        
-        <a href="/dashboard" class="sidebar-btn active">Dashboard</a>
-        <a href="/admin" class="sidebar-btn" id="admin-link" style="display: none;">Admin Panel</a>
-        <a href="/documents" class="sidebar-btn">Documents</a>
-        <a href="/settings" class="sidebar-btn">Account Settings</a>
-        
-        <a href="/" class="sidebar-btn info-link">← View Info Page</a>
+<div class="dashboard-container">
+    <p style="color: #666; margin-bottom: 5px;">Welcome back,</p>
+    <h1 id="username-display">Loading...</h1>
+    <div class="role-text" id="user-role">Role: Fetching...</div>
+
+    <div class="badge-container">
+        <span id="badge-dev" class="badge badge-dev">Developer</span>
+        <span id="badge-instr" class="badge badge-instr">Staff Instructor</span>
+        <span id="badge-db" class="badge badge-db">Database Access</span>
     </div>
 
-    <div class="content">
-        <div class="header">
-            <h1 id="welcome-text">Welcome, Staff</h1>
-            <a href="/logout" class="logout-btn">Logout</a>
-        </div>
-
-        <div class="dashboard-card">
-            <h3>Staff Notice Board</h3>
-            <p>Welcome to the newly updated MSRP Staff Portal. Please ensure you are familiar with the updated server documents and the new registration flow. If you encounter any bugs, report them to the development team immediately.</p>
-        </div>
-
-        <div class="dashboard-card">
-            <h3>Your Status</h3>
-            <p id="user-role">Role: Fetching...</p>
-        </div>
+    <div class="nav-grid">
+        <a href="/documents" class="nav-btn">Documents</a>
+        <a href="/settings" class="nav-btn">Settings</a>
+        <a href="/2fa" class="nav-btn">Security</a>
+        <a href="/admin" id="admin-btn" class="nav-btn" style="display: none;">Admin Panel</a>
     </div>
 
-    <script>
-        // GATEKEEPER & DATA FETCH
-        async function loadDashboard() {
-            try {
-                const response = await fetch('/api/check-auth');
-                const data = await response.json();
+    <a href="/logout" class="logout-btn">Sign Out</a>
+</div>
 
-                if (!data.loggedIn) {
-                    window.location.href = '/login';
-                } else {
-                    // Update UI with Session Data
-                    document.getElementById('welcome-text').innerText = `Welcome, ${data.username}`;
-                    
-                    // We need a separate fetch for role details if they aren't in check-auth
-                    const userResponse = await fetch('/api/admin/users'); 
-                    // Note: This works because we are the logged in user
-                    const users = await userResponse.json();
-                    const me = users.find(u => u.username === data.username);
-                    
-                    if (me) {
-                        document.getElementById('user-role').innerText = `Role: ${me.role}`;
-                        
-                        // Show Admin Panel button if they are Admin+
-                        if (['Admin', 'Management', 'Owner'].includes(me.role)) {
-                            document.getElementById('admin-link').style.display = 'block';
-                        }
-                    }
-                }
-            } catch (err) {
-                console.error("Dashboard error:", err);
+<script>
+    async function loadDashboard() {
+        try {
+            const response = await fetch('/api/user-info');
+            
+            if (!response.ok) {
+                // If not logged in, boot back to login page
+                window.location.href = '/login';
+                return;
             }
-        }
 
-        loadDashboard();
-    </script>
+            const user = await response.json();
+
+            // 1. Update Username and Role
+            document.getElementById('username-display').innerText = user.username;
+            document.getElementById('user-role').innerText = `Role: ${user.role}`;
+
+            // 2. Show Badges based on Boolean flags in Schema
+            if (user.isDeveloper) {
+                document.getElementById('badge-dev').style.display = 'inline-block';
+            }
+            if (user.isStaffInstructor) {
+                document.getElementById('badge-instr').style.display = 'inline-block';
+            }
+            if (user.hasDatabaseAccess) {
+                document.getElementById('badge-db').style.display = 'inline-block';
+            }
+
+            // 3. Reveal Admin Panel for specific ranks
+            const privilegedRanks = ['Admin', 'Management', 'Owner'];
+            if (privilegedRanks.includes(user.role)) {
+                document.getElementById('admin-btn').style.display = 'block';
+            }
+
+        } catch (err) {
+            console.error("Dashboard Load Error:", err);
+            document.getElementById('user-role').innerText = "Session Error";
+        }
+    }
+
+    loadDashboard();
+</script>
+
 </body>
 </html>
+
 
 
 
