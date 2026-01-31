@@ -177,10 +177,19 @@ app.post('/login', async (req, res) => {
         const user = await User.findOne({ username });
         if (user && await bcrypt.compare(password, user.password)) {
             if (user.isBanned) return res.status(403).send('Account is banned.');
+            
+            // Set session data
             req.session.username = user.username;
             req.session.isLoggedIn = true;
-            req.session.save(() => res.redirect('/dashboard'));
-        } else { res.status(401).send('Invalid login details.'); }
+
+            // IMPORTANT: Save the session BEFORE redirecting
+            req.session.save((err) => {
+                if (err) return res.status(500).send("Session Save Error");
+                res.redirect('/dashboard');
+            });
+        } else {
+            res.status(401).send('Invalid login details.');
+        }
     } catch (err) { res.status(500).send("Server Error"); }
 });
 
@@ -207,6 +216,7 @@ app.get('*', (req, res) => res.redirect('/'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP Server running on port ${PORT}`));
+
 
 
 
