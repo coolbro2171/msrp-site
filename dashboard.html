@@ -10,152 +10,180 @@
             --primary-purple: #60068f;
             --glass: rgba(255, 255, 255, 0.05);
             --bg-dark: #0a0a0a;
+            --sidebar-width: 260px;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             background-color: var(--bg-dark);
             color: white;
             margin: 0;
             display: flex;
-            justify-content: center;
-            align-items: center;
             height: 100vh;
             background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a);
+            overflow: hidden;
         }
 
-        .dashboard-container {
+        /* Sidebar Styling */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: rgba(15, 15, 15, 0.95);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 20px;
+            box-sizing: border-box;
+        }
+
+        .sidebar-header {
+            font-weight: bold;
+            color: var(--primary-purple);
+            font-size: 1.5rem;
+            margin-bottom: 40px;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-grow: 1;
+        }
+
+        .nav-tab {
+            padding: 15px 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #aaa;
+            transition: 0.3s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .nav-tab:hover {
             background: var(--glass);
+            color: white;
+        }
+
+        .nav-tab.active {
+            background: var(--primary-purple);
+            color: white;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             padding: 40px;
+        }
+
+        .profile-card {
+            background: var(--glass);
+            padding: 50px;
             border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
-            width: 450px;
+            width: 100%;
+            max-width: 500px;
             text-align: center;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
         }
 
-        h1 { margin: 0; font-size: 2rem; color: white; }
-        .role-text { color: var(--primary-purple); font-weight: bold; margin-bottom: 20px; letter-spacing: 1px; }
+        .username { font-size: 2.5rem; margin: 0; }
+        .role-text { color: var(--primary-purple); font-weight: bold; margin-bottom: 20px; font-size: 1.1rem; }
 
-        /* Badge Styling */
+        /* Badges */
         .badge-container {
             display: flex;
             justify-content: center;
             gap: 10px;
-            margin: 15px 0;
-            min-height: 30px;
+            margin-top: 20px;
         }
 
         .badge {
-            padding: 5px 12px;
+            padding: 6px 14px;
             border-radius: 20px;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             font-weight: bold;
             text-transform: uppercase;
-            display: none; /* Hidden until verified */
+            display: none;
         }
 
-        .badge-dev { background: #3b82f6; color: white; border: 1px solid #60a5fa; }
-        .badge-instr { background: #10b981; color: white; border: 1px solid #34d399; }
-        .badge-db { background: #f59e0b; color: white; border: 1px solid #fbbf24; }
+        .badge-dev { background: #3b82f6; border: 1px solid #60a5fa; }
+        .badge-instr { background: #10b981; border: 1px solid #34d399; }
+        .badge-db { background: #f59e0b; border: 1px solid #fbbf24; }
 
-        .nav-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-top: 30px;
-        }
-
-        .nav-btn {
-            background: var(--glass);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 12px;
-            color: white;
-            text-decoration: none;
-            transition: 0.3s;
-            font-weight: 500;
-        }
-
-        .nav-btn:hover {
-            background: var(--primary-purple);
-            transform: translateY(-3px);
-            border-color: var(--primary-purple);
-        }
-
-        .logout-btn {
-            margin-top: 25px;
-            display: inline-block;
+        .logout-link {
+            margin-top: auto;
             color: #ff4444;
             text-decoration: none;
             font-size: 0.9rem;
+            text-align: center;
+            padding: 10px;
             opacity: 0.7;
         }
 
-        .logout-btn:hover { opacity: 1; }
+        .logout-link:hover { opacity: 1; }
     </style>
 </head>
 <body>
 
-<div class="dashboard-container">
-    <p style="color: #666; margin-bottom: 5px;">Welcome back,</p>
-    <h1 id="username-display">Loading...</h1>
-    <div class="role-text" id="user-role">Role: Fetching...</div>
-
-    <div class="badge-container">
-        <span id="badge-dev" class="badge badge-dev">Developer</span>
-        <span id="badge-instr" class="badge badge-instr">Staff Instructor</span>
-        <span id="badge-db" class="badge badge-db">Database Access</span>
+<div class="sidebar">
+    <div class="sidebar-header">MSRP</div>
+    <div class="nav-tabs">
+        <a href="/dashboard" class="nav-tab active">Return to Info</a>
+        <a href="/documents" class="nav-tab">Documents</a>
+        <a href="/settings" class="nav-tab">Settings</a>
+        <a href="/admin" id="admin-tab" class="nav-tab" style="display: none;">Admin Panel</a>
     </div>
+    <a href="/logout" class="logout-link">Sign Out</a>
+</div>
 
-    <div class="nav-grid">
-        <a href="/documents" class="nav-btn">Documents</a>
-        <a href="/settings" class="nav-btn">Settings</a>
-        <a href="/2fa" class="nav-btn">Security</a>
-        <a href="/admin" id="admin-btn" class="nav-btn" style="display: none;">Admin Panel</a>
+<div class="main-content">
+    <div class="profile-card">
+        <p style="color: #888; margin-bottom: 5px;">User Profile</p>
+        <h1 class="username" id="display-username">Loading...</h1>
+        <div class="role-text" id="display-role">Fetching Rank...</div>
+
+        <div class="badge-container">
+            <span id="badge-dev" class="badge badge-dev">Developer</span>
+            <span id="badge-instr" class="badge badge-instr">Instructor</span>
+            <span id="badge-db" class="badge badge-db">DB Access</span>
+        </div>
     </div>
-
-    <a href="/logout" class="logout-btn">Sign Out</a>
 </div>
 
 <script>
     async function loadDashboard() {
         try {
             const response = await fetch('/api/user-info');
-            
             if (!response.ok) {
-                // If not logged in, boot back to login page
                 window.location.href = '/login';
                 return;
             }
 
             const user = await response.json();
 
-            // 1. Update Username and Role
-            document.getElementById('username-display').innerText = user.username;
-            document.getElementById('user-role').innerText = `Role: ${user.role}`;
+            document.getElementById('display-username').innerText = user.username;
+            document.getElementById('display-role').innerText = user.role;
 
-            // 2. Show Badges based on Boolean flags in Schema
-            if (user.isDeveloper) {
-                document.getElementById('badge-dev').style.display = 'inline-block';
-            }
-            if (user.isStaffInstructor) {
-                document.getElementById('badge-instr').style.display = 'inline-block';
-            }
-            if (user.hasDatabaseAccess) {
-                document.getElementById('badge-db').style.display = 'inline-block';
-            }
+            // Badge Display Logic based on your Boolean flags
+            if (user.isDeveloper) document.getElementById('badge-dev').style.display = 'inline-block';
+            if (user.isStaffInstructor) document.getElementById('badge-instr').style.display = 'inline-block';
+            if (user.hasDatabaseAccess) document.getElementById('badge-db').style.display = 'inline-block';
 
-            // 3. Reveal Admin Panel for specific ranks
-            const privilegedRanks = ['Admin', 'Management', 'Owner'];
-            if (privilegedRanks.includes(user.role)) {
-                document.getElementById('admin-btn').style.display = 'block';
+            // Admin Access check
+            if (['Admin', 'Management', 'Owner'].includes(user.role)) {
+                document.getElementById('admin-tab').style.display = 'flex';
             }
 
         } catch (err) {
-            console.error("Dashboard Load Error:", err);
-            document.getElementById('user-role').innerText = "Session Error";
+            console.error("Load error:", err);
+            document.getElementById('display-role').innerText = "Session Error";
         }
     }
 
@@ -164,6 +192,7 @@
 
 </body>
 </html>
+
 
 
 
