@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MSRP | Internal Staff Documents</title>
+    <title>MSRP | Staff Documents</title>
     <link rel="icon" type="image/webp" href="https://cdn.discordapp.com/icons/1198422904178749500/6bfeee54c636ac47d339a198ff6843d2.webp">
     <style>
         :root {
@@ -14,7 +14,7 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             background-color: var(--bg-dark);
             color: white;
             margin: 0;
@@ -22,7 +22,6 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
-            box-sizing: border-box;
             background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a);
         }
 
@@ -37,7 +36,11 @@
             margin-bottom: 20px;
         }
 
-        h1 { color: var(--primary-purple); margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px; }
+        .dev-credit {
+            font-size: 0.8rem;
+            color: #666;
+            margin: 0;
+        }
 
         .main-layout {
             display: grid;
@@ -76,13 +79,13 @@
             cursor: pointer;
             transition: 0.3s;
             display: block;
-            text-align: left;
             width: 100%;
             color: white;
+            text-align: left;
         }
 
         .doc-item:hover {
-            background-color: rgba(96, 6, 143, 0.2);
+            background: rgba(96, 6, 143, 0.2);
             border-left: 4px solid var(--primary-purple);
             transform: translateX(5px);
         }
@@ -93,33 +96,24 @@
         .viewer-container {
             background: #111;
             border-radius: 12px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
             border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        #doc-viewer { width: 100%; height: 100%; border: none; }
-
-        .no-doc-selected {
-            color: #555;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100%;
-            text-align: center;
+            overflow: hidden;
         }
 
-        .nav-link { text-decoration: none; color: var(--primary-purple); font-weight: bold; transition: 0.3s; }
+        #doc-viewer { width: 100%; height: 100%; border: none; display: none; }
+        .nav-link { color: var(--primary-purple); text-decoration: none; font-weight: bold; transition: 0.3s; }
         .nav-link:hover { color: white; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h1>Staff Documents</h1>
-    <p style="color: #666; font-size: 0.8rem;">Managed by MSRP Development</p>
-    <a href="/dashboard" class="nav-link">← Dashboard</a>
+    <h1 style="font-size: 1.5rem; color: var(--primary-purple); margin: 0;">STAFF DOCUMENTS</h1>
+    <p class="dev-credit">Website Made and Managed by the MSRP Development Team</p>
+    <a href="/dashboard" class="nav-link">← Return to Dashboard</a>
 </div>
 
 <div class="main-layout">
@@ -128,23 +122,31 @@
             <h2>Community</h2>
             <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1cZw44mW0Qsx85zLAVLv9cnTDq8QYnUBnY4yixLj54nc/preview')">
                 <span class="doc-name">In-Game Rules</span>
-                <span class="doc-meta">View Guidelines</span>
+                <span class="doc-meta">Google Document</span>
             </button>
             <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/13kqDPdLtxAyb_UP1oitiQzlEb85ibbedhey2TmJNkqk/preview')">
                 <span class="doc-name">Discord Rules</span>
-                <span class="doc-meta">View Guidelines</span>
+                <span class="doc-meta">Google Document</span>
             </button>
         </div>
 
-        <div class="doc-section">
+        <div class="doc-section locked-section" id="staff-section">
             <h2>Staff Only</h2>
             <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/149sjVJeB1BILmEZkDJ3gtQchYoGrk5bS6atUzkuD1zY/preview')">
                 <span class="doc-name">Staff Handbook</span>
-                <span class="doc-meta">Standard Operating Procedures</span>
+                <span class="doc-meta">Google Document</span>
             </button>
             <button class="doc-item" onclick="viewDoc('https://docs.google.com/spreadsheets/d/1MA2oDwq4h6-zAYT6aIXM_6DzilBjCL0jgX8n57GjXuo/preview')">
                 <span class="doc-name">Punishment Guide</span>
-                <span class="doc-meta">Disciplinary Matrix</span>
+                <span class="doc-meta">Google Spreadsheet</span>
+            </button>
+            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1ai0WRMd__yLuRRD2RehWPzeg9MPmHoZ5D3MPg7pxq4c/preview')">
+                <span class="doc-name">Ticket TOS</span>
+                <span class="doc-meta">Google Document</span>
+            </button>
+            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1MCE5gfyBGc79CTjMLSHMQmi_JRArDGSLY7ZT7Na-ALA/preview')">
+                <span class="doc-name">In-Game Messages</span>
+                <span class="doc-meta">Google Document</span>
             </button>
         </div>
 
@@ -152,7 +154,15 @@
             <h2>HR Staff Only</h2>
             <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/149sjVJeB1BILmEZkDJ3gtQchYoGrk5bS6atUzkuD1zY/preview')">
                 <span class="doc-name">HR Handbook</span>
-                <span class="doc-meta">Management Guide</span>
+                <span class="doc-meta">Google Document</span>
+            </button>
+            <button class="doc-item" onclick="viewDoc('https://docs.google.com/presentation/d/13uKjPdj5BRzSNHzxpsCNkwEFHUg_d_1ub5Z9kANGcQU/preview')">
+                <span class="doc-name">Staff Training Slide</span>
+                <span class="doc-meta">Google Slide</span>
+            </button>
+            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1XdJnw9jpsk0x_ALyE320ZiYDGYNugtXg7Sraa5Ao-R4/preview')">
+                <span class="doc-name">Staff Training Guide</span>
+                <span class="doc-meta">Google Document</span>
             </button>
         </div>
 
@@ -160,49 +170,46 @@
             <h2>SHR Staff Only</h2>
             <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/19s7TtpioP4faID7k0bqOgQeMtI37jbcNHZo2p0tApNQ/preview')">
                 <span class="doc-name">SHR Handbook</span>
-                <span class="doc-meta">Executive Directives</span>
+                <span class="doc-meta">Google Document</span>
+            </button>
+            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1u-iU8S8-5oT1U3UQGk5B_eOX40a43hBqiEZp4Gltk4M/preview')">
+                <span class="doc-name">Interview Questions</span>
+                <span class="doc-meta">Google Document</span>
             </button>
         </div>
     </div>
 
     <div class="viewer-container">
-        <div class="no-doc-selected" id="placeholder">
-            <p>Select a document to begin viewing</p>
-        </div>
-        <iframe id="doc-viewer" style="display: none;"></iframe>
+        <p id="placeholder" style="color: #444; font-weight: 600;">Select a document from the sidebar to begin viewing.</p>
+        <iframe id="doc-viewer"></iframe>
     </div>
 </div>
 
 <script>
     function viewDoc(url) {
         const viewer = document.getElementById('doc-viewer');
-        const placeholder = document.getElementById('placeholder');
-        placeholder.style.display = 'none';
+        document.getElementById('placeholder').style.display = 'none';
         viewer.style.display = 'block';
         viewer.src = url;
     }
 
-    async function checkAccess() {
+    async function checkPermissions() {
         try {
-            // UPDATED: Now matches the /api/user-info route in your server.js
-            const response = await fetch('/api/user-info');
-            const user = await response.json();
+            const res = await fetch('/api/user-info');
+            const user = await res.json();
             
-            const adminRoles = ['Admin', 'Management', 'Owner'];
-            const managementRoles = ['Management', 'Owner'];
+            const isStaff = ['Staff', 'Admin', 'Management', 'Owner'].includes(user.role);
+            const isAdmin = ['Admin', 'Management', 'Owner'].includes(user.role);
+            const isSHR = ['Management', 'Owner'].includes(user.role);
 
-            if (adminRoles.includes(user.role)) {
-                document.getElementById('admin-section').style.display = 'block';
-            }
-            if (managementRoles.includes(user.role)) {
-                document.getElementById('management-section').style.display = 'block';
-            }
-        } catch (err) {
-            console.error("Access check failed.");
+            if (isStaff) document.getElementById('staff-section').style.display = 'block';
+            if (isAdmin) document.getElementById('admin-section').style.display = 'block';
+            if (isSHR) document.getElementById('management-section').style.display = 'block';
+        } catch (e) { 
+            console.error("Permission check failed."); 
         }
     }
-    checkAccess();
+    checkPermissions();
 </script>
-
 </body>
 </html>
