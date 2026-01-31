@@ -158,44 +158,47 @@
 </div>
 
 <script>
-    async function loadInfo() {
+async function loadDashboard() {
     try {
-        const res = await fetch('/api/user-info');
+        const response = await fetch('/api/user-info');
         
-        // If the server says you aren't logged in (401), redirect to login
-        if (res.status === 401) {
+        // If the server says you aren't logged in (401), redirect immediately
+        if (response.status === 401) {
             window.location.href = '/login';
             return;
         }
 
-        const user = await res.json();
+        const user = await response.json();
 
-        // Populate the UI
-        document.getElementById('user-role').innerText = `Role: ${user.role}`;
+        // Update the text and remove the loading state
+        document.getElementById('display-username').innerText = user.username;
+        document.getElementById('display-role').innerText = user.role;
 
-        // Handle Boolean Badges
+        // Badge Display
         if (user.isDeveloper) document.getElementById('badge-dev').style.display = 'inline-block';
         if (user.isStaffInstructor) document.getElementById('badge-instr').style.display = 'inline-block';
-        if (user.hasDatabaseAccess) document.getElementById('badge-db').style.display = 'inline-block';
+        if (user.isDatabaseAccess) document.getElementById('badge-db').style.display = 'inline-block';
 
-        // Show Admin Panel tab only for authorized ranks
+        // Show Admin Panel for Staff/Management/Owner
         if (['Admin', 'Management', 'Owner'].includes(user.role)) {
             const adminTab = document.getElementById('admin-tab');
             if (adminTab) adminTab.style.display = 'flex';
         }
 
     } catch (err) {
-        console.error("Session fetch failed:", err);
-        document.getElementById('user-role').innerText = "Error loading session.";
+        console.error("Fetch error:", err);
+        // If there's a serious error, don't just hang—show a message
+        document.getElementById('display-role').innerText = "Session Error. Please re-login.";
     }
 }
 
-// Run the check immediately on page load
-document.addEventListener('DOMContentLoaded', loadInfo);
+// Call it as soon as the page loads
+loadDashboard();
 </script>
 
 </body>
 </html>
+
 
 
 
