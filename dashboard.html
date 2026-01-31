@@ -158,40 +158,45 @@
 </div>
 
 <script>
-    async function loadDashboard() {
-        try {
-            const response = await fetch('/api/user-info');
-            if (!response.ok) {
-                window.location.href = '/login';
-                return;
-            }
-
-            const user = await response.json();
-
-            document.getElementById('display-username').innerText = user.username;
-            document.getElementById('display-role').innerText = user.role;
-
-            // Badge Display Logic based on your Boolean flags
-            if (user.isDeveloper) document.getElementById('badge-dev').style.display = 'inline-block';
-            if (user.isStaffInstructor) document.getElementById('badge-instr').style.display = 'inline-block';
-            if (user.isDatabaseAccess) document.getElementById('badge-db').style.display = 'inline-block';
-
-            // Admin Access check
-            if (['Admin', 'Management', 'Owner'].includes(user.role)) {
-                document.getElementById('admin-tab').style.display = 'flex';
-            }
-
-        } catch (err) {
-            console.error("Load error:", err);
-            document.getElementById('display-role').innerText = "Session Error";
+    async function loadInfo() {
+    try {
+        const res = await fetch('/api/user-info');
+        
+        // If the server says you aren't logged in (401), redirect to login
+        if (res.status === 401) {
+            window.location.href = '/login';
+            return;
         }
-    }
 
-    loadDashboard();
+        const user = await res.json();
+
+        // Populate the UI
+        document.getElementById('user-role').innerText = `Role: ${user.role}`;
+
+        // Handle Boolean Badges
+        if (user.isDeveloper) document.getElementById('badge-dev').style.display = 'inline-block';
+        if (user.isStaffInstructor) document.getElementById('badge-instr').style.display = 'inline-block';
+        if (user.hasDatabaseAccess) document.getElementById('badge-db').style.display = 'inline-block';
+
+        // Show Admin Panel tab only for authorized ranks
+        if (['Admin', 'Management', 'Owner'].includes(user.role)) {
+            const adminTab = document.getElementById('admin-tab');
+            if (adminTab) adminTab.style.display = 'flex';
+        }
+
+    } catch (err) {
+        console.error("Session fetch failed:", err);
+        document.getElementById('user-role').innerText = "Error loading session.";
+    }
+}
+
+// Run the check immediately on page load
+document.addEventListener('DOMContentLoaded', loadInfo);
 </script>
 
 </body>
 </html>
+
 
 
 
