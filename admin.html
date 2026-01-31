@@ -69,6 +69,56 @@
         .type-suggestion { color: #2ed573; font-weight: bold; }
         
         .logout-link { margin-top: auto; color: #ff4444; text-decoration: none; font-size: 0.9rem; text-align: center; opacity: 0.7; padding: 10px; }
+
+        /* Modal Styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: #111;
+            margin: 10% auto;
+            padding: 30px;
+            border: 1px solid var(--primary-purple);
+            border-radius: 18px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+        .modal-header { border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px; }
+        .modal-header h2 { margin: 0; color: var(--primary-purple); }
+        
+        .close-modal { 
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            cursor: pointer; 
+            color: #888; 
+            font-size: 1.5rem; 
+            transition: 0.2s;
+        }
+        .close-modal:hover { color: white; }
+
+        .modal-body p { margin: 10px 0; line-height: 1.5; }
+        .description-box {
+            background: rgba(255,255,255,0.03);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.05);
+            margin-top: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
     </style>
 </head>
 <body>
@@ -119,6 +169,21 @@
             </thead>
             <tbody id="report-list"></tbody>
         </table>
+    </div>
+</div>
+
+<div id="reportModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeModal()">&times;</span>
+        <div class="modal-header">
+            <h2 id="modal-title">Report Details</h2>
+        </div>
+        <div class="modal-body">
+            <p><strong>Submitted By:</strong> <span id="modal-user"></span></p>
+            <p><strong>Type:</strong> <span id="modal-type"></span></p>
+            <p><strong>Current Status:</strong> <span id="modal-status" class="badge-tag"></span></p>
+            <div id="modal-desc" class="description-box"></div>
+        </div>
     </div>
 </div>
 
@@ -192,13 +257,17 @@
             reports.forEach(report => {
                 const row = document.createElement('tr');
                 const typeClass = report.type === 'Bug' ? 'type-bug' : 'type-suggestion';
+                
+                // We stringify the report object to pass it into the view function
+                const reportData = JSON.stringify(report).replace(/"/g, '&quot;');
+                
                 row.innerHTML = `
                     <td>${report.username}</td>
                     <td><span class="${typeClass}">${report.type.toUpperCase()}</span></td>
-                    <td title="${report.description}">${report.title}</td>
+                    <td>${report.title}</td>
                     <td><span class="badge-tag">${report.status}</span></td>
                     <td>
-                        <button class="btn-action btn-resolve" onclick="updateReportStatus('${report._id}', 'Reviewed')">Review</button>
+                        <button class="btn-action btn-resolve" onclick="viewReport(${reportData})">Review</button>
                         <button class="btn-action btn-ban" onclick="updateReportStatus('${report._id}', 'Resolved')">Resolve</button>
                     </td>
                 `;
@@ -207,14 +276,44 @@
         } catch (err) { console.error("Failed to load reports:", err); }
     }
 
+    // Modal Functions
+    function viewReport(report) {
+        document.getElementById('modal-title').innerText = report.title;
+        document.getElementById('modal-user').innerText = report.username;
+        document.getElementById('modal-type').innerText = report.type;
+        document.getElementById('modal-status').innerText = report.status;
+        document.getElementById('modal-desc').innerText = report.description;
+        
+        document.getElementById('reportModal').style.display = 'block';
+        
+        // Auto-mark as "Reviewed" if it was still "Pending"
+        if (report.status === 'Pending') {
+            updateReportStatus(report._id, 'Reviewed');
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('reportModal').style.display = 'none';
+    }
+
+    // Close modal when clicking outside of it
+    window.onclick = function(event) {
+        const modal = document.getElementById('reportModal');
+        if (event.target == modal) {
+            closeModal();
+        }
+    }
+
     async function updateReportStatus(reportId, status) {
-        const res = await fetch('/api/admin/reports/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reportId, status })
-        });
-        if (res.ok) loadReports();
-        else alert("Failed to update report status.");
+        try {
+            const res = await fetch('/api/admin/reports/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reportId, status })
+            });
+            if (res.ok) loadReports();
+            else alert("Failed to update report status.");
+        } catch (e) { alert("Error connecting to server."); }
     }
 
     async function changeRank(targetUsername, action) {
