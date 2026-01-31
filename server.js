@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema({
     // Badge Flags
     isDeveloper: { type: Boolean, default: false },
     isStaffInstructor: { type: Boolean, default: false },
-    hasDatabaseAccess: { type: Boolean, default: false },
+    isDatabaseAccess: { type: Boolean, default: false },
 
     // Security
     twoFactorSecret: { type: String, default: null },
@@ -200,6 +200,7 @@ app.get('*', (req, res) => res.redirect('/'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP Server running on port ${PORT}`));
+
 
 
 
