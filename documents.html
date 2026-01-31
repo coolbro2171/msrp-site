@@ -23,6 +23,8 @@
             display: flex;
             flex-direction: column;
             background: radial-gradient(circle at top right, #1a1a1a, #0a0a0a);
+            box-sizing: border-box;
+            transition: padding-top 0.3s ease;
         }
 
         .header {
@@ -110,6 +112,10 @@
 </head>
 <body>
 
+<div id="global-banner" style="display: none; background: #60068f; color: white; text-align: center; padding: 12px; font-weight: bold; width: 100%; position: fixed; top: 0; left: 0; z-index: 9999; border-bottom: 2px solid rgba(255,255,255,0.1); box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 0.95rem;">
+    <span id="banner-message"></span>
+</div>
+
 <div class="header">
     <h1 style="font-size: 1.5rem; color: var(--primary-purple); margin: 0;">INTERNAL STAFF DOCUMENTS</h1>
     <p class="dev-credit">Website Made and Managed by the MSRP Development Team</p>
@@ -190,6 +196,19 @@
 </div>
 
 <script>
+    async function initBanner() {
+        try {
+            const res = await fetch('/api/system/banner');
+            const data = await res.json();
+            if (data && data.isBannerActive) {
+                const banner = document.getElementById('global-banner');
+                document.getElementById('banner-message').innerText = data.bannerText;
+                banner.style.display = 'block';
+                document.body.style.paddingTop = (banner.offsetHeight + 20) + 'px';
+            }
+        } catch (e) { console.log("Banner failed"); }
+    }
+
     function viewDoc(url) {
         const viewer = document.getElementById('doc-viewer');
         document.getElementById('placeholder').style.display = 'none';
@@ -198,6 +217,7 @@
     }
 
     async function checkPermissions() {
+        await initBanner();
         try {
             const res = await fetch('/api/user-info');
             const user = await res.json();
