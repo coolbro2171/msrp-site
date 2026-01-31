@@ -70,6 +70,7 @@
             padding-bottom: 5px;
         }
 
+        /* Sections are empty by default */
         .locked-section { display: none; }
 
         .doc-item {
@@ -138,54 +139,17 @@
 
         <div class="doc-section locked-section" id="staff-section">
             <h2>Staff Only</h2>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/149sjVJeB1BILmEZkDJ3gtQchYoGrk5bS6atUzkuD1zY/preview')">
-                <span class="doc-name">Staff Handbook</span>
-                <span class="doc-meta">Google Document</span>
-            </button>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/spreadsheets/d/1MA2oDwq4h6-zAYT6aIXM_6DzilBjCL0jgX8n57GjXuo/preview')">
-                <span class="doc-name">Punishment Guide</span>
-                <span class="doc-meta">Google Spreadsheet</span>
-            </button>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1ai0WRMd__yLuRRD2RehWPzeg9MPmHoZ5D3MPg7pxq4c/preview')">
-                <span class="doc-name">Ticket TOS</span>
-                <span class="doc-meta">Google Document</span>
-            </button>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1MCE5gfyBGc79CTjMLSHMQmi_JRArDGSLY7ZT7Na-ALA/preview')">
-                <span class="doc-name">In-Game Messages</span>
-                <span class="doc-meta">Google Document</span>
-            </button>
+            <div id="staff-docs-list"></div>
         </div>
 
         <div class="doc-section locked-section" id="admin-section">
             <h2>HR Staff Only</h2>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/149sjVJeB1BILmEZkDJ3gtQchYoGrk5bS6atUzkuD1zY/preview')">
-                <span class="doc-name">HR Handbook</span>
-                <span class="doc-meta">Google Document</span>
-            </button>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1joi2uZQFV0uhehTRoxOv9VHaahwmvMK0eZTP4sbBhJk/preview')">
-                <span class="doc-name">IA Punishment Guide</span>
-                <span class="doc-meta">Google Document</span>
-            </button>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/presentation/d/13uKjPdj5BRzSNHzxpsCNkwEFHUg_d_1ub5Z9kANGcQU/preview')">
-                <span class="doc-name">Staff Training Slide</span>
-                <span class="doc-meta">Google Slide</span>
-            </button>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1XdJnw9jpsk0x_ALyE320ZiYDGYNugtXg7Sraa5Ao-R4/preview')">
-                <span class="doc-name">Staff Training Guide</span>
-                <span class="doc-meta">Google Document</span>
-            </button>
+            <div id="admin-docs-list"></div>
         </div>
 
         <div class="doc-section locked-section" id="management-section">
             <h2>SHR Staff Only</h2>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/19s7TtpioP4faID7k0bqOgQeMtI37jbcNHZo2p0tApNQ/preview')">
-                <span class="doc-name">SHR Handbook</span>
-                <span class="doc-meta">Google Document</span>
-            </button>
-            <button class="doc-item" onclick="viewDoc('https://docs.google.com/document/d/1u-iU8S8-5oT1U3UQGk5B_eOX40a43hBqiEZp4Gltk4M/preview')">
-                <span class="doc-name">Interview Questions</span>
-                <span class="doc-meta">Google Document</span>
-            </button>
+            <div id="management-docs-list"></div>
         </div>
     </div>
 
@@ -196,6 +160,26 @@
 </div>
 
 <script>
+    // Secure Data Object - In a real production app, this list should come from an API call
+    const SECURE_DOCS = {
+        staff: [
+            { name: "Staff Handbook", meta: "Google Document", url: "https://docs.google.com/document/d/149sjVJeB1BILmEZkDJ3gtQchYoGrk5bS6atUzkuD1zY/preview" },
+            { name: "Punishment Guide", meta: "Google Spreadsheet", url: "https://docs.google.com/spreadsheets/d/1MA2oDwq4h6-zAYT6aIXM_6DzilBjCL0jgX8n57GjXuo/preview" },
+            { name: "Ticket TOS", meta: "Google Document", url: "https://docs.google.com/document/d/1ai0WRMd__yLuRRD2RehWPzeg9MPmHoZ5D3MPg7pxq4c/preview" },
+            { name: "In-Game Messages", meta: "Google Document", url: "https://docs.google.com/document/d/1MCE5gfyBGc79CTjMLSHMQmi_JRArDGSLY7ZT7Na-ALA/preview" }
+        ],
+        admin: [
+            { name: "HR Handbook", meta: "Google Document", url: "https://docs.google.com/document/d/149sjVJeB1BILmEZkDJ3gtQchYoGrk5bS6atUzkuD1zY/preview" },
+            { name: "IA Punishment Guide", meta: "Google Document", url: "https://docs.google.com/document/d/1joi2uZQFV0uhehTRoxOv9VHaahwmvMK0eZTP4sbBhJk/preview" },
+            { name: "Staff Training Slide", meta: "Google Slide", url: "https://docs.google.com/presentation/d/13uKjPdj5BRzSNHzxpsCNkwEFHUg_d_1ub5Z9kANGcQU/preview" },
+            { name: "Staff Training Guide", meta: "Google Document", url: "https://docs.google.com/document/d/1XdJnw9jpsk0x_ALyE320ZiYDGYNugtXg7Sraa5Ao-R4/preview" }
+        ],
+        management: [
+            { name: "SHR Handbook", meta: "Google Document", url: "https://docs.google.com/document/d/19s7TtpioP4faID7k0bqOgQeMtI37jbcNHZo2p0tApNQ/preview" },
+            { name: "Interview Questions", meta: "Google Document", url: "https://docs.google.com/document/d/1u-iU8S8-5oT1U3UQGk5B_eOX40a43hBqiEZp4Gltk4M/preview" }
+        ]
+    };
+
     async function initBanner() {
         try {
             const res = await fetch('/api/system/banner');
@@ -216,23 +200,49 @@
         viewer.src = url;
     }
 
+    // Helper to build buttons dynamically
+    function renderDocButtons(listId, docs) {
+        const container = document.getElementById(listId);
+        docs.forEach(doc => {
+            const btn = document.createElement('button');
+            btn.className = 'doc-item';
+            btn.onclick = () => viewDoc(doc.url);
+            btn.innerHTML = `
+                <span class="doc-name">${doc.name}</span>
+                <span class="doc-meta">${doc.meta}</span>
+            `;
+            container.appendChild(btn);
+        });
+    }
+
     async function checkPermissions() {
         await initBanner();
         try {
             const res = await fetch('/api/user-info');
             const user = await res.json();
             
-            const isStaff = ['Staff', 'Admin', 'Management', 'Owner'].includes(user.role);
-            const isAdmin = ['Admin', 'Management', 'Owner'].includes(user.role);
-            const isSHR = ['Management', 'Owner'].includes(user.role);
+            const role = user.role;
+            const isStaff = ['Staff', 'Admin', 'Management', 'Owner'].includes(role);
+            const isAdmin = ['Admin', 'Management', 'Owner'].includes(role);
+            const isSHR = ['Management', 'Owner'].includes(role);
 
-            if (isStaff) document.getElementById('staff-section').style.display = 'block';
-            if (isAdmin) document.getElementById('admin-section').style.display = 'block';
-            if (isSHR) document.getElementById('management-section').style.display = 'block';
+            if (isStaff) {
+                document.getElementById('staff-section').style.display = 'block';
+                renderDocButtons('staff-docs-list', SECURE_DOCS.staff);
+            }
+            if (isAdmin) {
+                document.getElementById('admin-section').style.display = 'block';
+                renderDocButtons('admin-docs-list', SECURE_DOCS.admin);
+            }
+            if (isSHR) {
+                document.getElementById('management-section').style.display = 'block';
+                renderDocButtons('management-docs-list', SECURE_DOCS.management);
+            }
         } catch (e) { 
             console.error("Permission check failed."); 
         }
     }
+
     checkPermissions();
 </script>
 </body>
