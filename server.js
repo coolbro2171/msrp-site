@@ -49,6 +49,16 @@ const blogSchema = new mongoose.Schema({
 });
 const Blog = mongoose.model('Blog', blogSchema, 'blog_updates');
 
+// Audit Log Schema
+const auditSchema = new mongoose.Schema({
+    action: { type: String, required: true },
+    performedBy: { type: String, required: true },
+    targetUser: { type: String, required: true },
+    details: { type: String },
+    timestamp: { type: Date, default: Date.now }
+});
+const AuditLog = mongoose.model('AuditLog', auditSchema, 'audit_logs');
+
 // --- MIDDLEWARE ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -74,7 +84,6 @@ const ranks = ['User', 'Staff', 'Admin', 'Management', 'Owner'];
 
 // --- SYSTEM & BLOG API (PUBLIC) ---
 
-// Banner API
 app.get('/api/system/banner', async (req, res) => {
     try {
         const settings = await System.findOne();
@@ -84,7 +93,6 @@ app.get('/api/system/banner', async (req, res) => {
     }
 });
 
-// Blog API
 app.get('/api/blog-updates', async (req, res) => {
     try {
         const updates = await Blog.find().sort({ order: -1 });
@@ -129,6 +137,7 @@ app.post('/api/admin/change-rank', async (req, res) => {
         if (!targetUser) return res.status(404).send("User not found");
         if (targetUser.role === 'Owner') return res.status(403).send("Cannot modify Owner");
 
+        const oldRole = targetUser.role;
         let currentIdx = ranks.indexOf(targetUser.role);
         let newIdx = action === 'promote' ? currentIdx + 1 : currentIdx - 1;
 
@@ -136,6 +145,16 @@ app.post('/api/admin/change-rank', async (req, res) => {
 
         targetUser.role = ranks[newIdx];
         await targetUser.save();
+
+        // Audit Logging
+        const log = new AuditLog({
+            action: "RANK_CHANGE",
+            performedBy: req.session.username,
+            targetUser: targetUsername,
+            details: `Changed from ${oldRole} to ${targetUser.role}`
+        });
+        await log.save();
+
         res.json({ success: true, newRole: targetUser.role });
     } catch (err) { res.status(500).send("Update failed"); }
 });
@@ -152,6 +171,16 @@ app.post('/api/admin/toggle-ban', async (req, res) => {
 
         targetUser.isBanned = isBanned;
         await targetUser.save();
+
+        // Audit Logging
+        const log = new AuditLog({
+            action: isBanned ? "BAN_USER" : "UNBAN_USER",
+            performedBy: req.session.username,
+            targetUser: targetUsername,
+            details: isBanned ? "User was banned from portal" : "User was unbanned from portal"
+        });
+        await log.save();
+
         res.json({ success: true });
     } catch (err) { res.status(500).send("Ban update failed"); }
 });
@@ -245,6 +274,7 @@ app.get('*', (req, res) => res.redirect('/'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP Server running on port ${PORT}`));
+
 
 
 
