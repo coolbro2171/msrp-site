@@ -1,0 +1,39 @@
+<div class="settings-card">
+    <h2>Submit Feedback</h2>
+    <p style="font-size: 0.8rem; color: #888; margin-bottom: 15px;">Help us improve MSRP by reporting bugs or suggesting features.</p>
+    
+    <label style="font-size: 0.8rem; color: var(--primary-purple);">Category</label>
+    <select id="report-type" style="width: 100%; padding: 12px; margin: 10px 0; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white;">
+        <option value="Bug">Bug Report</option>
+        <option value="Suggestion">Suggestion</option>
+    </select>
+
+    <label style="font-size: 0.8rem; color: var(--primary-purple);">Subject</label>
+    <input type="text" id="report-title" placeholder="Brief summary of the issue/idea">
+
+    <label style="font-size: 0.8rem; color: var(--primary-purple);">Description</label>
+    <textarea id="report-desc" style="width: 100%; height: 100px; padding: 12px; margin: 10px 0; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; resize: none; box-sizing: border-box;" placeholder="Provide as much detail as possible..."></textarea>
+
+    <button class="btn btn-purple" onclick="submitReport()">Submit Report</button>
+</div>
+
+<script>
+async function submitReport() {
+    const type = document.getElementById('report-type').value;
+    const title = document.getElementById('report-title').value;
+    const description = document.getElementById('report-desc').value;
+
+    if(!title || !description) return alert("Please fill in all fields.");
+
+    const res = await fetch('/api/reports/submit', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ type, title, description })
+    });
+
+    if(res.ok) {
+        alert("Thank you! Your feedback has been sent to the developers.");
+        location.reload();
+    }
+}
+</script>
