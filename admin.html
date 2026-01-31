@@ -54,12 +54,14 @@
         .btn-promote { background: #28a745; color: white; }
         .btn-demote { background: #e67e22; color: white; }
         .btn-ban { background: #333; color: white; }
-        .btn-delete { background: #dc3545; color: white; }
 
         .badge-tag { padding: 2px 8px; border-radius: 4px; font-size: 0.6rem; font-weight: bold; margin-right: 5px; background: rgba(255,255,255,0.1); }
         .role-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: bold; }
         .role-owner { background: #ff4757; }
         .role-management { background: #ffa502; }
+        .role-admin { background: #5352ed; }
+        .role-staff { background: #2ed573; }
+        .role-user { background: #747d8c; }
         
         .logout-link { margin-top: auto; color: #ff4444; text-decoration: none; font-size: 0.9rem; text-align: center; opacity: 0.7; padding: 10px; }
     </style>
@@ -89,44 +91,80 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody id="user-list">
-                </tbody>
+            <tbody id="user-list"></tbody>
         </table>
     </div>
 </div>
 
 <script>
     async function loadUsers() {
-        const res = await fetch('/api/admin/users'); // Path from our server.js
-        const users = await res.json();
-        const list = document.getElementById('user-list');
-        list.innerHTML = '';
+        try {
+            const res = await fetch('/api/admin/users');
+            if (!res.ok) throw new Error("Unauthorized");
+            const users = await res.json();
+            const list = document.getElementById('user-list');
+            list.innerHTML = '';
 
-        users.forEach(user => {
-            let badges = [];
-            if (user.isDeveloper) badges.push('<span class="badge-tag">DEVELOPER</span>');
-            if (user.isStaffInstructor) badges.push('<span class="badge-tag">STAFF INSTRUCTOR</span>');
-            if (user.isDatabaseAccess) badges.push('<span class="badge-tag" style="color:#bf2e7e">DATABASE ACCESS</span>');
+            users.forEach(user => {
+                let badges = [];
+                if (user.isDeveloper) badges.push('<span class="badge-tag">DEVELOPER</span>');
+                if (user.isStaffInstructor) badges.push('<span class="badge-tag">STAFF INSTRUCTOR</span>');
+                if (user.hasDatabaseAccess) badges.push('<span class="badge-tag" style="color:#bf2e7e">DATABASE ACCESS</span>');
 
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${user.username} ${user.isBanned ? '🛑' : ''}</td>
-                <td><span class="role-badge role-${user.role.toLowerCase()}">${user.role}</span></td>
-                <td>${badges.join('') || 'None'}</td>
-                <td>
-                    <button class="btn-action btn-promote" onclick="quickUpdate('${user.username}', 'promote')">Promote</button>
-                    <button class="btn-action btn-demote" onclick="quickUpdate('${user.username}', 'demote')">Demote</button>
-                    <button class="btn-action btn-ban" onclick="toggleBan('${user.username}', ${!user.isBanned})">${user.isBanned ? 'Unban' : 'Ban'}</button>
-                </td>
-            `;
-            list.appendChild(row);
-        });
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${user.username} ${user.isBanned ? '🛑' : ''}</td>
+                    <td><span class="role-badge role-${user.role.toLowerCase()}">${user.role}</span></td>
+                    <td>${badges.join('') || 'None'}</td>
+                    <td>
+                        <button class="btn-action btn-promote" onclick="changeRank('${user.username}', 'promote')">Promote</button>
+                        <button class="btn-action btn-demote" onclick="changeRank('${user.username}', 'demote')">Demote</button>
+                        <button class="btn-action btn-ban" onclick="toggleBan('${user.username}', ${!user.isBanned})">
+                            ${user.isBanned ? 'Unban' : 'Ban'}
+                        </button>
+                    </td>
+                `;
+                list.appendChild(row);
+            });
+        } catch (err) {
+            console.error("Failed to load users:", err);
+        }
     }
 
-    async function quickUpdate(targetUsername, action) {
-        // This links to the /api/admin/update-user route in server.js
-        // You would expand this to handle rank logic
-        alert(`Request to ${action} ${targetUsername} sent to server.`);
+    // Rank Change Logic
+    async function changeRank(targetUsername, action) {
+        if (!confirm(`Are you sure you want to ${action} ${targetUsername}?`)) return;
+
+        const res = await fetch('/api/admin/change-rank', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetUsername, action })
+        });
+
+        if (res.ok) {
+            loadUsers(); // Refresh table
+        } else {
+            const err = await res.text();
+            alert("Error: " + err);
+        }
+    }
+
+    // Ban Logic
+    async function toggleBan(targetUsername, isBanned) {
+        const actionText = isBanned ? "BAN" : "UNBAN";
+        if (!confirm(`Confirm ${actionText} for ${targetUsername}?`)) return;
+
+        const res = await fetch('/api/admin/toggle-ban', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targetUsername, isBanned })
+        });
+
+        if (res.ok) {
+            loadUsers(); // Refresh table
+        } else {
+            alert("Failed to update ban status.");
+        }
     }
 
     loadUsers();
