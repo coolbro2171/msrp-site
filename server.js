@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema({
     // Badge Flags
     isDeveloper: { type: Boolean, default: false },
     isStaffInstructor: { type: Boolean, default: false },
-    isDatabaseAccess: { type: Boolean, default: false },
+    isDatabaseAccess: { type: Boolean, default: false }, // Standardized field name
 
     // Security
     twoFactorSecret: { type: String, default: null },
@@ -42,16 +42,17 @@ app.use(express.static(__dirname));
 
 app.use(session({
     secret: 'msrp-secure-v11-final-build',
-    resave: true,               // Forces session to be saved back to the store
-    saveUninitialized: false,   // Don't create empty sessions
+    resave: true,               
+    saveUninitialized: false,   
     store: MongoStore.create({ 
         mongoUrl: MONGODB_URI,
-        touchAfter: 24 * 3600   // Only update the session once every 24 hours (saves database speed)
+        touchAfter: 24 * 3600   
     }),
     cookie: { 
-        secure: false,          // Keep false for Render.com unless you have a custom SSL setup
+        secure: false,          
         httpOnly: true, 
-        maxAge: 1000 * 60 * 60 * 24 // 1 Day
+        sameSite: 'lax',        // Helps maintain session during redirects
+        maxAge: 1000 * 60 * 60 * 24 
     }
 }));
 
@@ -62,9 +63,12 @@ const ranks = ['User', 'Staff', 'Admin', 'Management', 'Owner'];
 
 // Fetch current user session data
 app.get('/api/user-info', async (req, res) => {
-    if (!req.session.isLoggedIn) return res.status(401).json({ error: "Unauthorized" });
+    if (!req.session.isLoggedIn || !req.session.username) {
+        return res.status(401).json({ error: "Unauthorized" });
+    }
     try {
         const user = await User.findOne({ username: req.session.username }, '-password');
+        if (!user) return res.status(404).json({ error: "User not found" });
         res.json(user);
     } catch (err) { res.status(500).json({ error: "Server Error" }); }
 });
@@ -122,7 +126,6 @@ app.post('/api/admin/toggle-ban', async (req, res) => {
 });
 
 // --- 2FA LOGIC ---
-
 app.get('/api/2fa/setup', async (req, res) => {
     if (!req.session.isLoggedIn) return res.status(401).send("Unauthorized");
     const user = await User.findOne({ username: req.session.username });
@@ -160,7 +163,6 @@ app.post('/api/2fa/disable', async (req, res) => {
 });
 
 // --- AUTHENTICATION ---
-
 app.post('/register', async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -178,11 +180,9 @@ app.post('/login', async (req, res) => {
         if (user && await bcrypt.compare(password, user.password)) {
             if (user.isBanned) return res.status(403).send('Account is banned.');
             
-            // Set session data
             req.session.username = user.username;
             req.session.isLoggedIn = true;
 
-            // IMPORTANT: Save the session BEFORE redirecting
             req.session.save((err) => {
                 if (err) return res.status(500).send("Session Save Error");
                 res.redirect('/dashboard');
@@ -209,13 +209,13 @@ app.get('/settings', (req, res) => req.session.isLoggedIn ? res.sendFile(path.jo
 app.get('/admin', (req, res) => req.session.isLoggedIn ? res.sendFile(path.join(__dirname, 'admin.html')) : res.redirect('/login'));
 app.get('/documents', (req, res) => req.session.isLoggedIn ? res.sendFile(path.join(__dirname, 'documents.html')) : res.redirect('/login'));
 
-// Lowercase 2FA route
 app.get('/2fa', (req, res) => req.session.isLoggedIn ? res.sendFile(path.join(__dirname, '2fa-verify.html')) : res.redirect('/login'));
 
 app.get('*', (req, res) => res.redirect('/'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`MSRP Server running on port ${PORT}`));
+
 
 
 
