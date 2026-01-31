@@ -135,7 +135,7 @@
 <div class="sidebar">
     <div class="sidebar-header">MSRP STAFF AREA</div>
     <div class="nav-tabs">
-        <a href="/" class="nav-tab active">Return to Info</a>
+        <a href="/dashboard" class="nav-tab active">Return to Info</a>
         <a href="/documents" class="nav-tab">Documents</a>
         <a href="/settings" class="nav-tab">Settings</a>
         <a href="/admin" id="admin-tab" class="nav-tab" style="display: none;">Admin Panel</a>
@@ -160,26 +160,34 @@
 <script>
 async function loadDashboard() {
     try {
-        const response = await fetch('/api/user-info');
+        // Added credentials: 'include' to ensure the session cookie is passed
+        const response = await fetch('/api/user-info', {
+            method: 'GET',
+            credentials: 'include', 
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
         
-        // If the server says you aren't logged in (401), redirect immediately
         if (response.status === 401) {
+            console.warn("Unauthorized: Redirecting to login.");
             window.location.href = '/login';
             return;
         }
 
         const user = await response.json();
 
-        // Update the text and remove the loading state
+        // Update UI
         document.getElementById('display-username').innerText = user.username;
         document.getElementById('display-role').innerText = user.role;
 
-        // Badge Display
+        // Badge Display (isDatabaseAccess standardized)
         if (user.isDeveloper) document.getElementById('badge-dev').style.display = 'inline-block';
         if (user.isStaffInstructor) document.getElementById('badge-instr').style.display = 'inline-block';
         if (user.isDatabaseAccess) document.getElementById('badge-db').style.display = 'inline-block';
 
-        // Show Admin Panel for Staff/Management/Owner
+        // Show Admin Panel
         if (['Admin', 'Management', 'Owner'].includes(user.role)) {
             const adminTab = document.getElementById('admin-tab');
             if (adminTab) adminTab.style.display = 'flex';
@@ -187,23 +195,13 @@ async function loadDashboard() {
 
     } catch (err) {
         console.error("Fetch error:", err);
-        // If there's a serious error, don't just hang—show a message
         document.getElementById('display-role').innerText = "Session Error. Please re-login.";
     }
 }
 
-// Call it as soon as the page loads
+// Initial trigger
 loadDashboard();
 </script>
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
