@@ -192,7 +192,6 @@
 </div>
 
 <script>
-    // Define rank priority (Higher number = Higher rank)
     const RANK_PRIORITY = {
         'Owner': 5,
         'Management': 4,
@@ -200,6 +199,9 @@
         'Staff': 2,
         'User': 1
     };
+
+    // Global variable to store current user data for rank logic
+    let cachedUsers = [];
 
     async function initBanner() {
         try {
@@ -227,10 +229,9 @@
             const res = await fetch('/api/admin/users');
             if (!res.ok) throw new Error("Unauthorized");
             
-            let users = await res.json();
+            cachedUsers = await res.json();
 
-            // Sort users based on RANK_PRIORITY (Descending)
-            users.sort((a, b) => {
+            cachedUsers.sort((a, b) => {
                 const priorityA = RANK_PRIORITY[a.role] || 0;
                 const priorityB = RANK_PRIORITY[b.role] || 0;
                 return priorityB - priorityA; 
@@ -239,7 +240,7 @@
             const list = document.getElementById('user-list');
             list.innerHTML = '';
 
-            users.forEach(user => {
+            cachedUsers.forEach(user => {
                 let badges = [];
                 if (user.isDeveloper) badges.push('<span class="badge-tag" style="background:rgba(255,255,255,0.1)">DEVELOPER</span>');
                 if (user.isStaffInstructor) badges.push('<span class="badge-tag" style="background:rgba(255,255,255,0.1)">STAFF INSTRUCTOR</span>');
@@ -348,19 +349,47 @@
     }
 
     async function changeRank(targetUsername, action) {
+        const targetUser = cachedUsers.find(u => u.username === targetUsername);
+        
+        if (targetUser) {
+            // Restriction: Owners cannot be demoted/promoted, 
+            // and no one can be promoted to Owner through this panel.
+            if (targetUser.role === 'Owner') {
+                alert("The Owner rank cannot be modified via the panel.");
+                return;
+            }
+
+            if (action === 'promote' && targetUser.role === 'Management') {
+                alert("Promotion to 'Owner' is restricted.");
+                return;
+            }
+        }
+
         if (!confirm(`Are you sure you want to ${action} ${targetUsername}?`)) return;
+
         const res = await fetch('/api/admin/change-rank', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ targetUsername, action })
         });
-        if (res.ok) loadUsers();
-        else alert("Error: " + await res.text());
+        
+        if (res.ok) {
+            loadUsers();
+        } else {
+            alert("Error: " + await res.text());
+        }
     }
 
     async function toggleBan(targetUsername, isBanned) {
+        const targetUser = cachedUsers.find(u => u.username === targetUsername);
+        if (targetUser && targetUser.role === 'Owner') {
+            alert("Owners cannot be banned.");
+            return;
+        }
+
         const actionText = isBanned ? "BAN" : "UNBAN";
         if (!confirm(`Confirm ${actionText} for ${targetUsername}?`)) return;
+        
         const res = await fetch('/api/admin/toggle-ban', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
