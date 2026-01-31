@@ -151,8 +151,8 @@
 
         <div class="badge-container">
             <span id="badge-dev" class="badge badge-dev">Developer</span>
-            <span id="badge-instr" class="badge badge-instr">Instructor</span>
-            <span id="badge-db" class="badge badge-db">DB Access</span>
+            <span id="badge-instr" class="badge badge-instr">Staff Instructor</span>
+            <span id="badge-db" class="badge badge-db">Database Access</span>
         </div>
     </div>
 </div>
@@ -174,7 +174,7 @@
             // Badge Display Logic based on your Boolean flags
             if (user.isDeveloper) document.getElementById('badge-dev').style.display = 'inline-block';
             if (user.isStaffInstructor) document.getElementById('badge-instr').style.display = 'inline-block';
-            if (user.hasDatabaseAccess) document.getElementById('badge-db').style.display = 'inline-block';
+            if (user.isDatabaseAccess) document.getElementById('badge-db').style.display = 'inline-block';
 
             // Admin Access check
             if (['Admin', 'Management', 'Owner'].includes(user.role)) {
@@ -192,6 +192,7 @@
 
 </body>
 </html>
+
 
 
 
