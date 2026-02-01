@@ -209,7 +209,7 @@
             const data = await res.json();
             if (data && data.isBannerActive) {
                 const banner = document.getElementById('global-banner');
-                document.getElementById('banner-message').innerText = data.bannerText;
+                document.getElementById('banner-message').innerHTML = data.bannerText;
                 banner.style.display = 'block';
                 const offset = banner.offsetHeight;
                 document.body.style.marginTop = offset + 'px';
