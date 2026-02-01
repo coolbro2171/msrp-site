@@ -403,7 +403,7 @@ async function initBanner() {
             const banner = document.getElementById('global-banner');
             const nav = document.getElementById('auth-nav');
             
-            document.getElementById('banner-message').innerText = data.bannerText;
+            document.getElementById('banner-message').innerHTML = data.bannerText;
             banner.style.display = 'block';
             
             const offset = banner.offsetHeight;
@@ -491,6 +491,7 @@ loadBlogUpdates();
     </script>
 </body>
 </html>
+
 
 
 
