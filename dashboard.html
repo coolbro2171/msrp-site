@@ -239,7 +239,7 @@ async function initBanner() {
             const banner = document.getElementById('global-banner');
             const message = document.getElementById('banner-message');
             
-            message.innerText = data.bannerText;
+            message.innerHTML = data.bannerText;
             banner.style.display = 'block';
             
             document.body.style.marginTop = banner.offsetHeight + 'px';
@@ -326,6 +326,7 @@ loadDashboard();
 
 </body>
 </html>
+
 
 
 
