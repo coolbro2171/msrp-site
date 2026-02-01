@@ -186,7 +186,7 @@
             const data = await res.json();
             if (data && data.isBannerActive) {
                 const banner = document.getElementById('global-banner');
-                document.getElementById('banner-message').innerText = data.bannerText;
+                document.getElementById('banner-message').innerHTML = data.bannerText;
                 banner.style.display = 'block';
                 document.body.style.paddingTop = (banner.offsetHeight + 20) + 'px';
             }
